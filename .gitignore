@@ -1,0 +1,20 @@
+# Dependencies
+/vendor/
+composer.lock
+
+# Test & tooling caches
+.phpunit.cache/
+.phpunit.result.cache
+.pint.cache
+/coverage/
+
+# Environment files (never commit keys)
+.env
+.env.*
+!.env.example
+
+# Editors and OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
