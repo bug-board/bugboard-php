@@ -62,9 +62,9 @@ BugBoard::critical('Payment failed', $e, ['payments', 'checkout']);
 Or inject the shared client instead of using the facade:
 
 ```php
-use BugBoard\Client;
+use BugBoard\Client as BugBoardClient;
 
-public function store(Request $request, Client $bugboard)
+public function store(Request $request, BugBoardClient $bugboard)
 {
     $bugboard->moderate('Slow image upload', null, 'uploads');
 }
@@ -115,9 +115,9 @@ bugboard:
 Then autowire the client anywhere:
 
 ```php
-use BugBoard\Client;
+use BugBoard\Client as BugBoardClient;
 
-public function __construct(private readonly Client $bugboard) {}
+public function __construct(private readonly BugBoardClient $bugboard) {}
 
 $this->bugboard->major('Checkout is slow', $exception, ['checkout']);
 ```
