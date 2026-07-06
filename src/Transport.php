@@ -40,7 +40,7 @@ final class Transport implements TransportInterface
     {
         // Dry-run mode: log the readable payload locally instead of sending it.
         if ($this->config->logLocally) {
-            $this->logger->local('Report (log-only, not sent): ' . json_encode(
+            $this->logger->local('Report (log-only, not sent): '.json_encode(
                 $payload->toArray(),
                 JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
             ));
