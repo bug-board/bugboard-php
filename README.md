@@ -164,24 +164,24 @@ Tags accept an array (`['ui', 'android']`) or a CSV string (`'ui,android'`).
 
 Option names mirror the shared SDK specification (identical across the official SDKs):
 
-| Option                 | Type       | Default | Purpose                                                                   |
-| ---------------------- | ---------- | ------- | -------------------------------------------------------------------------- |
-| `keyId`                | `string`   | —       | Public key id (`bbk_…`) for HMAC auth. Recommended for servers.            |
-| `signingSecret`        | `string`   | —       | Signing secret (`bb_sec_…`). Never transmitted.                            |
-| `apiKey`               | `string`   | —       | Publishable key (`bb_pub_…`), bearer auth — for browser/mobile keys; rarely right in PHP. |
-| `encryptionPublicKey`  | `string`   | —       | Base64 X25519 public key. When set, every payload is encrypted in transit. |
-| `encryptionKeyId`      | `string`   | —       | `bbek_…` id echoed in the envelope (enables key rotation).                 |
-| `enabled`              | `bool`     | `true`  | Master switch (e.g. disable in tests).                                     |
-| `environment`          | `string`   | —       | Added to every card as tag `env:<value>`.                                  |
-| `release`              | `string`   | —       | Added to every card as tag `release:<value>`.                              |
-| `defaultTags`          | `string[]` | `[]`    | Merged into every card's tags.                                             |
-| `sampleRate`           | `float`    | `1.0`   | Probability (0–1) a report is sent.                                        |
-| `maxQueueSize`         | `int`      | `100`   | Buffer cap; overflow drops the newest report.                              |
-| `timeoutMs`            | `int`      | `5000`  | Per-request timeout.                                                       |
-| `maxRetries`           | `int`      | `3`     | Retries for 429/5xx/network errors (backoff + jitter, honors `Retry-After`). |
-| `beforeSend`           | `Closure`  | —       | Scrub PII or veto a report — return the payload array, or `null` to drop.  |
-| `debug`                | `bool`     | `false` | Verbose internal logging via `error_log` (keys always redacted).           |
-| `logLocally`           | `bool`     | `false` | Log each report locally instead of sending it (dry run).                  |
+| Option                | Type       | Default | Purpose                                                                                   |
+| --------------------- | ---------- | ------- | ----------------------------------------------------------------------------------------- |
+| `keyId`               | `string`   | —       | Public key id (`bbk_…`) for HMAC auth. Recommended for servers.                           |
+| `signingSecret`       | `string`   | —       | Signing secret (`bb_sec_…`). Never transmitted.                                           |
+| `apiKey`              | `string`   | —       | Publishable key (`bb_pub_…`), bearer auth — for browser/mobile keys; rarely right in PHP. |
+| `encryptionPublicKey` | `string`   | —       | Base64 X25519 public key. When set, every payload is encrypted in transit.                |
+| `encryptionKeyId`     | `string`   | —       | `bbek_…` id echoed in the envelope (enables key rotation).                                |
+| `enabled`             | `bool`     | `true`  | Master switch (e.g. disable in tests).                                                    |
+| `environment`         | `string`   | —       | Added to every card as tag `env:<value>`.                                                 |
+| `release`             | `string`   | —       | Added to every card as tag `release:<value>`.                                             |
+| `defaultTags`         | `string[]` | `[]`    | Merged into every card's tags.                                                            |
+| `sampleRate`          | `float`    | `1.0`   | Probability (0–1) a report is sent.                                                       |
+| `maxQueueSize`        | `int`      | `100`   | Buffer cap; overflow drops the newest report.                                             |
+| `timeoutMs`           | `int`      | `5000`  | Per-request timeout.                                                                      |
+| `maxRetries`          | `int`      | `3`     | Retries for 429/5xx/network errors (backoff + jitter, honors `Retry-After`).              |
+| `beforeSend`          | `Closure`  | —       | Scrub PII or veto a report — return the payload array, or `null` to drop.                 |
+| `debug`               | `bool`     | `false` | Verbose internal logging via `error_log` (keys always redacted).                          |
+| `logLocally`          | `bool`     | `false` | Log each report locally instead of sending it (dry run).                                  |
 
 `concurrency` and `flushIntervalMs` are accepted for cross-SDK parity; PHP's execution model
 delivers sequentially at flush time.
