@@ -21,6 +21,7 @@ final class ConfigTest extends TestCase
         $this->assertSame(5000, $config->timeoutMs);
         $this->assertSame(3, $config->maxRetries);
         $this->assertFalse($config->debug);
+        $this->assertFalse($config->logLocally);
         $this->assertSame('https://bugboard.dev/api/v1/tasks', $config->endpoint);
     }
 
@@ -69,6 +70,7 @@ final class ConfigTest extends TestCase
             'timeout_ms' => '1000',
             'max_retries' => '2',
             'debug' => 'true',
+            'log_locally' => 'true',
         ]);
 
         $this->assertSame('hmac', $config->authScheme());
@@ -79,6 +81,12 @@ final class ConfigTest extends TestCase
         $this->assertSame(1000, $config->timeoutMs);
         $this->assertSame(2, $config->maxRetries);
         $this->assertTrue($config->debug);
+        $this->assertTrue($config->logLocally);
+    }
+
+    public function test_from_array_accepts_camel_case_log_locally(): void
+    {
+        $this->assertTrue(Config::fromArray(['logLocally' => true])->logLocally);
     }
 
     public function test_from_array_treats_blank_strings_as_absent(): void

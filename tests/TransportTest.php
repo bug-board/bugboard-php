@@ -61,6 +61,31 @@ final class TransportTest extends TestCase
         $this->assertSame($this->payload()->toJson(), $this->http->bodies[0]);
     }
 
+    public function test_log_locally_logs_the_payload_and_never_sends(): void
+    {
+        $this->http->willRespond($this->response(201));
+
+        // Capture error_log() output (the Logger's sink) into a temp file.
+        $logFile = (string) tempnam(sys_get_temp_dir(), 'bb-log-');
+        $previous = ini_set('error_log', $logFile);
+
+        try {
+            $config = new Config(apiKey: 'bb_pub_test', logLocally: true);
+            // debug is false — the logLocally channel must still emit.
+            $this->transport($config)->send($this->payload());
+        } finally {
+            ini_set('error_log', $previous === false ? '' : $previous);
+        }
+
+        $this->assertCount(0, $this->http->requests);
+
+        $logged = (string) file_get_contents($logFile);
+        @unlink($logFile);
+        $this->assertStringContainsString('[bugboard]', $logged);
+        $this->assertStringContainsString('Report (log-only, not sent):', $logged);
+        $this->assertStringContainsString('SDK smoke test', $logged);
+    }
+
     public function test_it_signs_requests_with_a_secret_key(): void
     {
         $this->http->willRespond($this->response(201));

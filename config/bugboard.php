@@ -52,4 +52,7 @@ return [
     // Verbose internal logging (keys always redacted).
     'debug' => env('BUGBOARD_DEBUG', false),
 
+    // Log each report locally instead of sending it (local debugging / dry run).
+    'log_locally' => env('BUGBOARD_LOG_LOCALLY', false),
+
 ];

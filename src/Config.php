@@ -57,6 +57,7 @@ final readonly class Config
         public int $maxRetries = 3,
         public ?Closure $beforeSend = null,
         public bool $debug = false,
+        public bool $logLocally = false,
         public string $endpoint = self::DEFAULT_ENDPOINT,
     ) {}
 
@@ -104,6 +105,7 @@ final readonly class Config
             maxRetries: is_numeric($value = $get('max_retries', 'maxRetries')) ? (int) $value : 3,
             beforeSend: $beforeSend instanceof Closure ? $beforeSend : null,
             debug: filter_var($get('debug', 'debug') ?? false, FILTER_VALIDATE_BOOL),
+            logLocally: filter_var($get('log_locally', 'logLocally') ?? false, FILTER_VALIDATE_BOOL),
             endpoint: $string($get('endpoint', 'endpoint')) ?? self::DEFAULT_ENDPOINT,
         );
     }

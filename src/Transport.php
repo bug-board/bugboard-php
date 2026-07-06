@@ -38,6 +38,16 @@ final class Transport implements TransportInterface
 
     public function send(Payload $payload): void
     {
+        // Dry-run mode: log the readable payload locally instead of sending it.
+        if ($this->config->logLocally) {
+            $this->logger->local('Report (log-only, not sent): ' . json_encode(
+                $payload->toArray(),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+            ));
+
+            return;
+        }
+
         // Serialize (and optionally encrypt) once per report; the same bytes
         // are transmitted on every attempt. Encrypt first, then sign — the
         // HMAC signature covers the envelope bytes.

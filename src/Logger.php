@@ -39,12 +39,26 @@ final class Logger
         $this->write('error', $message);
     }
 
+    /**
+     * Always emitted, regardless of `debug` — this is the `logLocally` channel.
+     * Used to dump a report locally in dry-run mode instead of sending it.
+     */
+    public function local(string $message): void
+    {
+        $this->emit('local', $message);
+    }
+
     private function write(string $level, string $message): void
     {
         if (! $this->enabled) {
             return;
         }
 
+        $this->emit($level, $message);
+    }
+
+    private function emit(string $level, string $message): void
+    {
         error_log(sprintf('[bugboard] %s: %s', $level, $this->redact($message)));
     }
 

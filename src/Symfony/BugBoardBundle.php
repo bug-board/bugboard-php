@@ -45,6 +45,7 @@ final class BugBoardBundle extends AbstractBundle
             ->integerNode('timeout_ms')->defaultValue(5000)->end()
             ->integerNode('max_retries')->defaultValue(3)->end()
             ->booleanNode('debug')->defaultFalse()->end()
+            ->booleanNode('log_locally')->defaultFalse()->info('Log each report locally instead of sending it (local debugging / dry run).')->end()
             ->end();
     }
 

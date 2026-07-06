@@ -181,6 +181,7 @@ Option names mirror the shared SDK specification (identical across the official 
 | `maxRetries`           | `int`      | `3`     | Retries for 429/5xx/network errors (backoff + jitter, honors `Retry-After`). |
 | `beforeSend`           | `Closure`  | —       | Scrub PII or veto a report — return the payload array, or `null` to drop.  |
 | `debug`                | `bool`     | `false` | Verbose internal logging via `error_log` (keys always redacted).           |
+| `logLocally`           | `bool`     | `false` | Log each report locally instead of sending it (dry run).                  |
 
 `concurrency` and `flushIntervalMs` are accepted for cross-SDK parity; PHP's execution model
 delivers sequentially at flush time.
