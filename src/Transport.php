@@ -89,7 +89,7 @@ final class Transport implements TransportInterface
     {
         // Auth headers are computed per attempt so HMAC timestamps stay
         // within the server's ±300 s replay window across retries.
-        $request = $this->requestFactory->createRequest('POST', $this->config->endpoint)
+        $request = $this->requestFactory->createRequest('POST', $this->config->endpoint())
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Accept', 'application/json')
             ->withBody($this->streamFactory->createStream($body));

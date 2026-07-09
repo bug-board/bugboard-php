@@ -61,6 +61,16 @@ final class TransportTest extends TestCase
         $this->assertSame($this->payload()->toJson(), $this->http->bodies[0]);
     }
 
+    public function test_it_posts_to_the_api_route_under_a_custom_base_url(): void
+    {
+        $this->http->willRespond($this->response(201, ['data' => ['id' => 1]]));
+
+        $config = new Config(apiKey: 'bb_pub_test', baseUrl: 'http://localhost:8000/');
+        $this->transport($config)->send($this->payload());
+
+        $this->assertSame('http://localhost:8000/api/v1/tasks', (string) $this->http->requests[0]->getUri());
+    }
+
     public function test_log_locally_logs_the_payload_and_never_sends(): void
     {
         $this->http->willRespond($this->response(201));

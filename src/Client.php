@@ -54,6 +54,14 @@ final class Client
         if ($config->enabled && $config->authScheme() === 'none') {
             $this->logger->warn('No credentials configured (set apiKey, or keyId + signingSecret) — reporting is disabled.');
         }
+
+        if ($config->origin() === null) {
+            $this->logger->warn(sprintf(
+                'baseUrl "%s" is not an absolute URL — falling back to %s.',
+                $config->baseUrl,
+                Config::DEFAULT_BASE_URL,
+            ));
+        }
     }
 
     /**

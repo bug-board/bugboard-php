@@ -16,8 +16,11 @@ use Closure;
  */
 final readonly class Config
 {
-    /** BugBoard's single ingestion endpoint — the SDK never takes a base URL. */
-    public const DEFAULT_ENDPOINT = 'https://bugboard.dev/api/v1/tasks';
+    /** BugBoard's ingestion origin. */
+    public const DEFAULT_BASE_URL = 'https://bugboard.dev';
+
+    /** The ingestion route, appended to the base URL. Also the signed request path. */
+    public const API_PATH = '/api/v1/tasks';
 
     /**
      * @param  string|null  $apiKey  Publishable key (`bb_pub_…`), sent as a bearer token. Browser/mobile-facing keys; rarely right for PHP.
@@ -38,7 +41,7 @@ final readonly class Config
      * @param  int  $maxRetries  Retry attempts for 429/5xx/network failures. Other 4xx are never retried.
      * @param  Closure(array<string, mixed>): (array<string, mixed>|null)|null  $beforeSend  Scrub PII or veto a report — return the (mutated) payload array, or null to drop it.
      * @param  bool  $debug  Verbose internal logging (keys always redacted).
-     * @param  string  $endpoint  Ingestion endpoint override. @internal For SDK tests only.
+     * @param  string  $baseUrl  Ingestion origin override, e.g. `http://localhost:8000`. Only the origin is used; the SDK appends `/api/v1/tasks`. @internal For SDK tests only.
      */
     public function __construct(
         public ?string $apiKey = null,
@@ -60,7 +63,7 @@ final readonly class Config
         public ?Closure $beforeSend = null,
         public bool $debug = false,
         public bool $logLocally = false,
-        public string $endpoint = self::DEFAULT_ENDPOINT,
+        public string $baseUrl = self::DEFAULT_BASE_URL,
     ) {}
 
     /**
@@ -109,7 +112,7 @@ final readonly class Config
             beforeSend: $beforeSend instanceof Closure ? $beforeSend : null,
             debug: filter_var($get('debug', 'debug') ?? false, FILTER_VALIDATE_BOOL),
             logLocally: filter_var($get('log_locally', 'logLocally') ?? false, FILTER_VALIDATE_BOOL),
-            endpoint: $string($get('endpoint', 'endpoint')) ?? self::DEFAULT_ENDPOINT,
+            baseUrl: $string($get('base_url', 'baseUrl')) ?? self::DEFAULT_BASE_URL,
         );
     }
 
@@ -129,12 +132,37 @@ final readonly class Config
         return $this->enabled && $this->authScheme() !== 'none';
     }
 
+    /**
+     * The origin of the configured base URL (`scheme://host[:port]`), or null
+     * when it isn't an absolute URL.
+     */
+    public function origin(): ?string
+    {
+        $parts = parse_url($this->baseUrl);
+
+        if ($parts === false || ! isset($parts['scheme'], $parts['host'])) {
+            return null;
+        }
+
+        $port = isset($parts['port']) ? ':'.$parts['port'] : '';
+
+        return $parts['scheme'].'://'.$parts['host'].$port;
+    }
+
+    /**
+     * The full ingestion URL. Only the base URL's origin is kept, so a trailing
+     * slash or a stray path prefix can't change the route we sign. An
+     * unparseable base URL falls back to BugBoard rather than throwing.
+     */
+    public function endpoint(): string
+    {
+        return ($this->origin() ?? self::DEFAULT_BASE_URL).self::API_PATH;
+    }
+
     /** The request path used for HMAC signing (leading slash, no query string). */
     public function path(): string
     {
-        $path = parse_url($this->endpoint, PHP_URL_PATH);
-
-        return is_string($path) && $path !== '' ? $path : '/api/v1/tasks';
+        return self::API_PATH;
     }
 
     /** Sample rate clamped into [0, 1]. */
