@@ -53,6 +53,7 @@ final class ServiceProviderTest extends TestCase
             new Client(new Config(keyId: 'bbk_test', signingSecret: 'bb_sec_test'), $transport),
         );
 
+        $line = __LINE__ + 1;
         BugBoard::criticalHigh('Payment failed', null, ['payment', 'backend']);
         BugBoard::flush();
 
@@ -60,6 +61,10 @@ final class ServiceProviderTest extends TestCase
         $this->assertSame('critical', $transport->sent[0]->severity);
         $this->assertSame('high', $transport->sent[0]->priority);
         $this->assertSame(['payment', 'backend'], $transport->sent[0]->tags);
+
+        // The captured call site must be the caller here, not the framework facade.
+        $this->assertSame(__FILE__, $transport->sent[0]->fileName);
+        $this->assertSame($line, $transport->sent[0]->lineNumber);
     }
 
     public function test_buffered_reports_are_flushed_when_the_app_terminates(): void

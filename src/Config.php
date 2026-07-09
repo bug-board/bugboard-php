@@ -26,6 +26,7 @@ final readonly class Config
      * @param  string|null  $encryptionPublicKey  Base64 X25519 public key. When set, every payload is encrypted in transit.
      * @param  string|null  $encryptionKeyId  Encryption key id (`bbek_…`) echoed in the envelope (enables key rotation).
      * @param  bool  $enabled  Master switch — set false to disable reporting entirely (e.g. in tests).
+     * @param  bool  $captureLocation  Auto-capture the caller's file/line (sent as `file_name`/`line_number`). Default true.
      * @param  string|null  $environment  Added to every card as tag `env:<value>`.
      * @param  string|null  $release  Added to every card as tag `release:<value>`.
      * @param  list<string>  $defaultTags  Tags merged into every card.
@@ -46,6 +47,7 @@ final readonly class Config
         public ?string $encryptionPublicKey = null,
         public ?string $encryptionKeyId = null,
         public bool $enabled = true,
+        public bool $captureLocation = true,
         public ?string $environment = null,
         public ?string $release = null,
         public array $defaultTags = [],
@@ -94,6 +96,7 @@ final readonly class Config
             encryptionPublicKey: $string($get('encryption_public_key', 'encryptionPublicKey')),
             encryptionKeyId: $string($get('encryption_key_id', 'encryptionKeyId')),
             enabled: filter_var($get('enabled', 'enabled') ?? true, FILTER_VALIDATE_BOOL),
+            captureLocation: filter_var($get('capture_location', 'captureLocation') ?? true, FILTER_VALIDATE_BOOL),
             environment: $string($get('environment', 'environment')),
             release: $string($get('release', 'release')),
             defaultTags: is_array($tags) ? array_values(array_map(strval(...), $tags)) : [],

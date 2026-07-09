@@ -116,7 +116,9 @@ final class Client
             return;
         }
 
-        $payload = Payload::make($severity, $priority, $title, $description, $tags, $this->config);
+        $location = $this->config->captureLocation ? Location::capture() : null;
+
+        $payload = Payload::make($severity, $priority, $title, $description, $tags, $this->config, $location);
 
         if ($this->config->beforeSend !== null) {
             $result = ($this->config->beforeSend)($payload->toArray());

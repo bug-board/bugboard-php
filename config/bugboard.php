@@ -34,6 +34,9 @@ return [
     // Master switch — handy to disable reporting in local/testing envs.
     'enabled' => env('BUGBOARD_ENABLED', true),
 
+    // Attach the file/line of each reporting call as file_name / line_number.
+    'capture_location' => env('BUGBOARD_CAPTURE_LOCATION', true),
+
     // Folded into every card's tags as env:<value> / release:<value>.
     'environment' => env('BUGBOARD_ENVIRONMENT', env('APP_ENV')),
     'release' => env('BUGBOARD_RELEASE'),

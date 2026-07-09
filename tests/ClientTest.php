@@ -76,6 +76,70 @@ final class ClientTest extends TestCase
         $this->assertSame(['checkout', 'perf'], $transport->sent[0]->tags);
     }
 
+    public function test_captures_the_caller_file_and_line_by_default(): void
+    {
+        $transport = new CollectingTransport;
+        $client = $this->client(transport: $transport);
+
+        $line = __LINE__ + 1;
+        $client->criticalHigh('Payment error');
+        $client->flush();
+
+        $this->assertSame(__FILE__, $transport->sent[0]->fileName);
+        $this->assertSame($line, $transport->sent[0]->lineNumber);
+    }
+
+    public function test_captures_the_caller_from_inside_a_catch(): void
+    {
+        $transport = new CollectingTransport;
+        $client = $this->client(transport: $transport);
+
+        try {
+            throw new RuntimeException('boom');
+        } catch (RuntimeException) {
+            $line = __LINE__ + 1;
+            $client->critical('caught');
+        }
+        $client->flush();
+
+        $this->assertSame(__FILE__, $transport->sent[0]->fileName);
+        $this->assertSame($line, $transport->sent[0]->lineNumber);
+    }
+
+    public function test_call_site_is_omitted_when_capture_location_is_off(): void
+    {
+        $transport = new CollectingTransport;
+        $client = $this->client(
+            new Config(keyId: 'k', signingSecret: 's', captureLocation: false),
+            $transport,
+        );
+
+        $client->criticalHigh('Payment error');
+        $client->flush();
+
+        $this->assertNull($transport->sent[0]->fileName);
+        $this->assertNull($transport->sent[0]->lineNumber);
+    }
+
+    public function test_call_site_survives_the_before_send_round_trip(): void
+    {
+        $transport = new CollectingTransport;
+        $config = new Config(
+            keyId: 'k',
+            signingSecret: 's',
+            // A hook that returns the payload untouched still round-trips through fromArray().
+            beforeSend: static fn (array $payload): array => $payload,
+        );
+
+        $client = $this->client($config, $transport);
+        $line = __LINE__ + 1;
+        $client->criticalHigh('Payment error');
+        $client->flush();
+
+        $this->assertSame(__FILE__, $transport->sent[0]->fileName);
+        $this->assertSame($line, $transport->sent[0]->lineNumber);
+    }
+
     public function test_reports_are_buffered_until_flush(): void
     {
         $transport = new CollectingTransport;
