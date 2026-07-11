@@ -58,4 +58,8 @@ return [
     // Log each report locally instead of sending it (local debugging / dry run).
     'log_locally' => env('BUGBOARD_LOG_LOCALLY', false),
 
+    // Ask the server to omit the created card from its response, so a report is
+    // not echoed back in plaintext. Set false to receive the full response body.
+    'hide_api_response' => env('BUGBOARD_HIDE_API_RESPONSE', true),
+
 ];

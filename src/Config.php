@@ -41,6 +41,8 @@ final readonly class Config
      * @param  int  $maxRetries  Retry attempts for 429/5xx/network failures. Other 4xx are never retried.
      * @param  Closure(array<string, mixed>): (array<string, mixed>|null)|null  $beforeSend  Scrub PII or veto a report — return the (mutated) payload array, or null to drop it.
      * @param  bool  $debug  Verbose internal logging (keys always redacted).
+     * @param  bool  $logLocally  Log each report locally instead of sending it (dry run).
+     * @param  bool  $hideApiResponse  Ask the server to omit the card from its response, so a report isn't echoed back in plaintext. Default true.
      * @param  string  $baseUrl  Ingestion origin override, e.g. `http://localhost:8000`. Only the origin is used; the SDK appends `/api/v1/tasks`. @internal For SDK tests only.
      */
     public function __construct(
@@ -63,6 +65,7 @@ final readonly class Config
         public ?Closure $beforeSend = null,
         public bool $debug = false,
         public bool $logLocally = false,
+        public bool $hideApiResponse = true,
         public string $baseUrl = self::DEFAULT_BASE_URL,
     ) {}
 
@@ -112,6 +115,7 @@ final readonly class Config
             beforeSend: $beforeSend instanceof Closure ? $beforeSend : null,
             debug: filter_var($get('debug', 'debug') ?? false, FILTER_VALIDATE_BOOL),
             logLocally: filter_var($get('log_locally', 'logLocally') ?? false, FILTER_VALIDATE_BOOL),
+            hideApiResponse: filter_var($get('hide_api_response', 'hideApiResponse') ?? true, FILTER_VALIDATE_BOOL),
             baseUrl: $string($get('base_url', 'baseUrl')) ?? self::DEFAULT_BASE_URL,
         );
     }

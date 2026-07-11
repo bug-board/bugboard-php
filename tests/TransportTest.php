@@ -11,6 +11,7 @@ use BugBoard\Exceptions\ServerException;
 use BugBoard\Exceptions\ValidationException;
 use BugBoard\Logger;
 use BugBoard\Payload;
+use BugBoard\Signer;
 use BugBoard\Tests\Support\FakeHttpClient;
 use BugBoard\Tests\Support\FakeNetworkException;
 use BugBoard\Transport;
@@ -69,6 +70,72 @@ final class TransportTest extends TestCase
         $this->transport($config)->send($this->payload());
 
         $this->assertSame('http://localhost:8000/api/v1/tasks', (string) $this->http->requests[0]->getUri());
+    }
+
+    public function test_it_asks_the_server_to_hide_the_response_by_default(): void
+    {
+        $this->http->willRespond($this->response(201, ['deduplicated' => false]));
+
+        $this->transport(new Config(apiKey: 'bb_pub_test'))->send($this->payload());
+
+        $request = $this->http->requests[0];
+        $this->assertSame('true', $request->getHeaderLine('X-Bb-Hide-Response'));
+        // The preference is a header, never a body field — it must not reach the payload.
+        $this->assertSame($this->payload()->toJson(), $this->http->bodies[0]);
+    }
+
+    public function test_it_omits_the_hide_response_header_when_opted_out(): void
+    {
+        $this->http->willRespond($this->response(201, ['data' => ['id' => 1]]));
+
+        $config = new Config(apiKey: 'bb_pub_test', hideApiResponse: false);
+        $this->transport($config)->send($this->payload());
+
+        $this->assertFalse($this->http->requests[0]->hasHeader('X-Bb-Hide-Response'));
+    }
+
+    public function test_the_hide_response_header_stays_outside_the_hmac_signature(): void
+    {
+        $this->http->willRespond($this->response(201));
+
+        $config = new Config(keyId: 'bbk_x', signingSecret: 'bb_sec_x');
+        $this->transport($config)->send($this->payload());
+
+        $request = $this->http->requests[0];
+        $this->assertSame('true', $request->getHeaderLine('X-Bb-Hide-Response'));
+
+        // The signature spans method + path + body only, so it is the same as it
+        // would be with no hide-response header on the request at all.
+        $expected = Signer::headers(
+            'bbk_x',
+            'bb_sec_x',
+            'POST',
+            '/api/v1/tasks',
+            $this->payload()->toJson(),
+            (int) $request->getHeaderLine('X-Bb-Timestamp'),
+        );
+        $this->assertSame($expected['X-Bb-Signature'], $request->getHeaderLine('X-Bb-Signature'));
+    }
+
+    public function test_it_still_reads_the_outcome_flags_when_the_server_hides_the_card(): void
+    {
+        // A hidden response carries no `data`, but the control flags survive (§5).
+        $this->http->willRespond($this->response(200, ['quota_exceeded' => true]));
+
+        $logFile = (string) tempnam(sys_get_temp_dir(), 'bb-log-');
+        $previous = ini_set('error_log', $logFile);
+
+        try {
+            $config = new Config(apiKey: 'bb_pub_test', debug: true);
+            $factory = new HttpFactory;
+            (new Transport($config, $this->http, $factory, $factory, new Logger(true)))->send($this->payload());
+        } finally {
+            ini_set('error_log', $previous === false ? '' : $previous);
+        }
+
+        $logged = (string) file_get_contents($logFile);
+        @unlink($logFile);
+        $this->assertStringContainsString('quota is exhausted', $logged);
     }
 
     public function test_log_locally_logs_the_payload_and_never_sends(): void

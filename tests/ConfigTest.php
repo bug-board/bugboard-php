@@ -22,6 +22,7 @@ final class ConfigTest extends TestCase
         $this->assertSame(3, $config->maxRetries);
         $this->assertFalse($config->debug);
         $this->assertFalse($config->logLocally);
+        $this->assertTrue($config->hideApiResponse);
         $this->assertSame('https://bugboard.dev/api/v1/tasks', $config->endpoint());
     }
 
@@ -96,6 +97,7 @@ final class ConfigTest extends TestCase
             'max_retries' => '2',
             'debug' => 'true',
             'log_locally' => 'true',
+            'hide_api_response' => 'false',
         ]);
 
         $this->assertSame('hmac', $config->authScheme());
@@ -107,11 +109,18 @@ final class ConfigTest extends TestCase
         $this->assertSame(2, $config->maxRetries);
         $this->assertTrue($config->debug);
         $this->assertTrue($config->logLocally);
+        $this->assertFalse($config->hideApiResponse);
     }
 
     public function test_from_array_accepts_camel_case_log_locally(): void
     {
         $this->assertTrue(Config::fromArray(['logLocally' => true])->logLocally);
+    }
+
+    public function test_from_array_defaults_hide_api_response_on_and_accepts_camel_case(): void
+    {
+        $this->assertTrue(Config::fromArray([])->hideApiResponse);
+        $this->assertFalse(Config::fromArray(['hideApiResponse' => false])->hideApiResponse);
     }
 
     public function test_from_array_treats_blank_strings_as_absent(): void

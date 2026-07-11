@@ -43,6 +43,7 @@ final class ServiceProviderTest extends TestCase
         $this->assertSame('bbk_test', config('bugboard.key_id'));
         $this->assertSame(1.0, (float) config('bugboard.sample_rate'));
         $this->assertSame(100, (int) config('bugboard.max_queue_size'));
+        $this->assertTrue((bool) config('bugboard.hide_api_response'));
     }
 
     public function test_the_facade_reports_through_the_shared_client(): void

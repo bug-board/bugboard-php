@@ -182,6 +182,8 @@ Option names mirror the shared SDK specification (identical across the official 
 | `beforeSend`          | `Closure`  | —       | Scrub PII or veto a report — return the payload array, or `null` to drop.                 |
 | `debug`               | `bool`     | `false` | Verbose internal logging via `error_log` (keys always redacted).                          |
 | `logLocally`          | `bool`     | `false` | Log each report locally instead of sending it (dry run).                                  |
+| `captureLocation`     | `bool`     | `true`  | Auto-capture the caller's file/line as `file_name`/`line_number`.                         |
+| `hideApiResponse`     | `bool`     | `true`  | Ask the server to omit the card from its response (not echoed back).                      |
 
 `concurrency` and `flushIntervalMs` are accepted for cross-SDK parity; PHP's execution model
 delivers sequentially at flush time.
