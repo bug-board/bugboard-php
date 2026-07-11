@@ -7,11 +7,10 @@ idea to merged pull request.
 
 - **Bugs & features** — open an [issue](https://github.com/bug-board/bugboard-php/issues) first
   so we can discuss the approach before you invest time in code.
-- **Wire-contract changes** — the request format, auth schemes, retry policy, and the
-  16-method reporting surface are defined by the BugBoard SDK specification (the
-  [API reference](https://bugboard.dev/docs/api-reference)) and implemented identically by every
-  official SDK. Changes to that contract must be discussed in an issue first; SDK repos don't
-  diverge from the spec on their own.
+- **Wire-contract changes** — the request format, auth schemes, retry policy, and the 16-method
+  reporting surface are defined by the [API reference](https://bugboard.dev/docs/api-reference).
+  Changes to that contract must be discussed in an issue first — an SDK doesn't diverge from the
+  API on its own.
 - **Security issues** — never open a public issue; see [SECURITY.md](SECURITY.md).
 
 ## Development setup

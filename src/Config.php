@@ -11,8 +11,7 @@ use Closure;
  *
  * Provide either a publishable key (`apiKey`, bearer auth) or a secret key
  * (`keyId` + `signingSecret`, HMAC auth) — the SDK picks the scheme from
- * which is set. Every option name mirrors the shared SDK specification, so
- * configuration is identical across the official SDKs.
+ * which is set.
  */
 final readonly class Config
 {
@@ -23,7 +22,7 @@ final readonly class Config
     public const API_PATH = '/api/v1/tasks';
 
     /**
-     * @param  string|null  $apiKey  Publishable key (`bb_pub_…`), sent as a bearer token. Browser/mobile-facing keys; rarely right for PHP.
+     * @param  string|null  $apiKey  Publishable key (`bb_pub_…`), sent as a bearer token. A client-side key; rarely right for PHP.
      * @param  string|null  $keyId  Public key id (`bbk_…`) identifying which secret key signed the request.
      * @param  string|null  $signingSecret  Signing secret (`bb_sec_…`). Only used to compute signatures; never transmitted.
      * @param  string|null  $encryptionPublicKey  Base64 X25519 public key. When set, every payload is encrypted in transit.
@@ -35,8 +34,8 @@ final readonly class Config
      * @param  list<string>  $defaultTags  Tags merged into every card.
      * @param  float  $sampleRate  Probability (0–1) that a report is sent.
      * @param  int  $maxQueueSize  Buffer cap; overflow drops the newest report.
-     * @param  int  $concurrency  Accepted for cross-SDK config parity; PHP delivers sequentially on flush.
-     * @param  int  $flushIntervalMs  Accepted for cross-SDK config parity; PHP flushes on shutdown or via flush().
+     * @param  int  $concurrency  Accepted but has no effect; PHP delivers sequentially on flush.
+     * @param  int  $flushIntervalMs  Accepted but has no effect; PHP flushes on shutdown or via flush().
      * @param  int  $timeoutMs  Per-request timeout in milliseconds.
      * @param  int  $maxRetries  Retry attempts for 429/5xx/network failures. Other 4xx are never retried.
      * @param  Closure(array<string, mixed>): (array<string, mixed>|null)|null  $beforeSend  Scrub PII or veto a report — return the (mutated) payload array, or null to drop it.

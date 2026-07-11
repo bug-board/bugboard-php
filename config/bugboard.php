@@ -12,8 +12,11 @@ declare(strict_types=1);
 |
 | Servers should use a secret key: BUGBOARD_KEY_ID + BUGBOARD_SIGNING_SECRET.
 | Requests are HMAC-signed and the secret never leaves the server. The
-| publishable-key option (api_key) exists for parity but belongs in
-| browser/mobile clients, not in PHP.
+| publishable-key option (api_key) is a client-side key and is rarely the
+| right choice in PHP.
+|
+| Every option below is env-driven. `before_send` is the exception — it is a
+| closure, so add it to this file directly if you want to scrub or veto reports.
 |
 */
 

@@ -25,8 +25,9 @@ your app**.
 ## Requirements
 
 - PHP 8.2+
-- Any [PSR-18](https://www.php-fig.org/psr/psr-18/) HTTP client (Guzzle recommended; one is
-  auto-installed via `php-http/discovery` if missing)
+- Any [PSR-18](https://www.php-fig.org/psr/psr-18/) HTTP client plus PSR-17 factories. Guzzle is
+  the recommendation (`composer require guzzlehttp/guzzle`); if you don't pick one,
+  `php-http/discovery` finds whatever PSR-18 client your project already has.
 - `ext-sodium` only if you enable payload encryption (bundled with PHP by default)
 
 ## Installation
@@ -77,9 +78,21 @@ so reporting never adds latency to a request. To customize defaults, publish the
 php artisan vendor:publish --tag=bugboard-config
 ```
 
-A good default for `config/bugboard.php` is already provided: it reads every option from env
-(`BUGBOARD_ENABLED`, `BUGBOARD_SAMPLE_RATE`, `BUGBOARD_DEBUG`, …) and tags every card with your
-`APP_ENV`.
+A good default for `config/bugboard.php` is already provided: every option it exposes is env-driven
+(`BUGBOARD_ENABLED`, `BUGBOARD_SAMPLE_RATE`, `BUGBOARD_DEBUG`, …) and cards are tagged with your
+`APP_ENV` out of the box.
+
+`beforeSend` is the one option env can't express — it's a closure, so add it to the published config
+file directly:
+
+```php
+// config/bugboard.php
+'before_send' => function (array $payload): ?array {
+    $payload['description'] = preg_replace('/\S+@\S+/', '[email]', $payload['description'] ?? '') ?: null;
+
+    return $payload; // or return null to drop the report
+},
+```
 
 Want every unhandled exception on your board? Add one line to your exception handler:
 
@@ -142,8 +155,20 @@ $bugboard->flush(); // optional — the shutdown hook flushes automatically
 ```
 
 `ClientBuilder::create()` accepts an explicit PSR-18 client + PSR-17 factories if you want to
-control the HTTP stack (that's also the test seam); otherwise it uses Guzzle when installed and
-PSR discovery as the fallback.
+control the HTTP stack; otherwise it uses Guzzle when installed and PSR discovery as the fallback.
+
+If your config already lives in an array (from a config file, a container, `.env` parsing), skip the
+`Config` constructor — `ClientBuilder::createFromArray()` takes `snake_case` **or** `camelCase` keys
+and is exactly what the Laravel and Symfony integrations use internally:
+
+```php
+$bugboard = ClientBuilder::createFromArray([
+    'key_id' => getenv('BUGBOARD_KEY_ID') ?: null,
+    'signing_secret' => getenv('BUGBOARD_SIGNING_SECRET') ?: null,
+    'environment' => 'production',
+    'sample_rate' => 0.5,
+]);
+```
 
 ## The 16 reporting methods
 
@@ -158,17 +183,20 @@ The method name sets the card's severity and priority — there is no generic `r
 | **minor**    | `minorLow`    | `minor` / `minorMedium`       | `minorHigh`    |
 
 Most apps only need the four medium-priority methods: `critical`, `major`, `moderate`, `minor`.
-Tags accept an array (`['ui', 'android']`) or a CSV string (`'ui,android'`).
+Tags accept an array (`['ui', 'checkout']`) or a CSV string (`'ui,checkout'`).
+
+`$client->droppedCount()` reports how many reports the buffer discarded (see `maxQueueSize` below) —
+useful as a health metric if you sample heavily or report in tight loops.
 
 ## Configuration
 
-Option names mirror the shared SDK specification (identical across the official SDKs):
+Every option, its type, and its default:
 
 | Option                | Type       | Default | Purpose                                                                                   |
 | --------------------- | ---------- | ------- | ----------------------------------------------------------------------------------------- |
 | `keyId`               | `string`   | —       | Public key id (`bbk_…`) for HMAC auth. Recommended for servers.                           |
 | `signingSecret`       | `string`   | —       | Signing secret (`bb_sec_…`). Never transmitted.                                           |
-| `apiKey`              | `string`   | —       | Publishable key (`bb_pub_…`), bearer auth — for browser/mobile keys; rarely right in PHP. |
+| `apiKey`              | `string`   | —       | Publishable key (`bb_pub_…`), bearer auth — a client-side key; rarely right in PHP.       |
 | `encryptionPublicKey` | `string`   | —       | Base64 X25519 public key. When set, every payload is encrypted in transit.                |
 | `encryptionKeyId`     | `string`   | —       | `bbek_…` id echoed in the envelope (enables key rotation).                                |
 | `enabled`             | `bool`     | `true`  | Master switch (e.g. disable in tests).                                                    |
@@ -185,8 +213,8 @@ Option names mirror the shared SDK specification (identical across the official 
 | `captureLocation`     | `bool`     | `true`  | Auto-capture the caller's file/line as `file_name`/`line_number`.                         |
 | `hideApiResponse`     | `bool`     | `true`  | Ask the server to omit the card from its response (not echoed back).                      |
 
-`concurrency` and `flushIntervalMs` are accepted for cross-SDK parity; PHP's execution model
-delivers sequentially at flush time.
+`concurrency` and `flushIntervalMs` are accepted but have no effect: PHP's execution model
+delivers reports sequentially at flush time.
 
 ### Scrubbing PII
 
@@ -227,6 +255,52 @@ needed — `sodium` ships with PHP.
   deterministic titles (no timestamps or ids in the title).
 - **Quota drops are silent by design**: when the project's monthly quota is exhausted the server
   accepts and drops the report — logged in debug mode, never retried.
+
+### Exceptions
+
+Delivery failures are caught inside the SDK and surfaced on the debug log — **they are never thrown
+into your app**. The taxonomy in `BugBoard\Exceptions` exists so that a custom `TransportInterface`,
+or your own logging around it, can tell the cases apart:
+
+| Exception             | Raised on                      | Extra                                          |
+| --------------------- | ------------------------------ | ---------------------------------------------- |
+| `BugBoardException`   | base class for the four below  | —                                              |
+| `AuthException`       | 401 / 403 — bad or revoked key | —                                              |
+| `ValidationException` | 422 — the payload was rejected | `$fieldErrors` (`array<string, list<string>>`) |
+| `RateLimitException`  | 429 — too many reports         | `$retryAfter` (`?int`, seconds)                |
+| `ServerException`     | 5xx, network failure, timeout  | —                                              |
+
+## Testing
+
+Disable reporting entirely with `enabled: false`, or keep the client live but print reports instead
+of sending them with `logLocally: true`.
+
+To assert on what your code reported, inject a fake transport — `TransportInterface` is a
+single-method seam:
+
+```php
+use BugBoard\Client;
+use BugBoard\Config;
+use BugBoard\Payload;
+use BugBoard\TransportInterface;
+
+$transport = new class implements TransportInterface
+{
+    /** @var list<Payload> */
+    public array $sent = [];
+
+    public function send(Payload $payload): void
+    {
+        $this->sent[] = $payload;
+    }
+};
+
+$bugboard = new Client(new Config(keyId: 'bbk_test', signingSecret: 'bb_sec_test'), $transport);
+$bugboard->critical('Payment failed');
+$bugboard->flush();
+
+// $transport->sent[0]->severity === 'critical'
+```
 
 ## Contributing
 

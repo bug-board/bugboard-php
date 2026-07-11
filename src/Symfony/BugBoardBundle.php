@@ -20,8 +20,6 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  *     bugboard:
  *         key_id: '%env(BUGBOARD_KEY_ID)%'
  *         signing_secret: '%env(BUGBOARD_SIGNING_SECRET)%'
- *
- * Option names and defaults mirror the shared SDK specification.
  */
 final class BugBoardBundle extends AbstractBundle
 {
@@ -33,7 +31,7 @@ final class BugBoardBundle extends AbstractBundle
             ->children()
             ->scalarNode('key_id')->defaultNull()->info('Public key id (bbk_…) for HMAC auth.')->end()
             ->scalarNode('signing_secret')->defaultNull()->info('Signing secret (bb_sec_…); never transmitted.')->end()
-            ->scalarNode('api_key')->defaultNull()->info('Publishable key (bb_pub_…) — browser/mobile keys; rarely right for PHP.')->end()
+            ->scalarNode('api_key')->defaultNull()->info('Publishable key (bb_pub_…) — a client-side key; rarely right for PHP.')->end()
             ->scalarNode('encryption_public_key')->defaultNull()->info('Base64 X25519 public key; when set, payloads are encrypted in transit.')->end()
             ->scalarNode('encryption_key_id')->defaultNull()->info('Encryption key id (bbek_…) echoed in the envelope.')->end()
             ->booleanNode('enabled')->defaultTrue()->end()
