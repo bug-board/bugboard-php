@@ -87,7 +87,9 @@ ci: run tests on PHP 8.5
 ## Releases
 
 Maintainers cut releases. Versioning follows [SemVer](https://semver.org/); the changelog
-follows [Keep a Changelog](https://keepachangelog.com/).
+follows [Keep a Changelog](https://keepachangelog.com/). To release: move the `[Unreleased]`
+changelog entries under the new version and tag it (`vX.Y.Z`) — Packagist picks up new tags
+automatically.
 
 ## Code of conduct
 
