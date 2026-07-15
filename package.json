@@ -1,0 +1,9 @@
+{
+  "name": "bugboard-php",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Semantic release configuration for bugboard/sdk PHP package",
+  "devDependencies": {
+    "semantic-release": "^23.0.0"
+  }
+}
