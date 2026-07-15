@@ -54,6 +54,14 @@ final class Client
         if ($config->enabled && $config->authScheme() === 'none') {
             $this->logger->warn('No credentials configured (set apiKey, or keyId + signingSecret) — reporting is disabled.');
         }
+
+        if ($config->origin() === null) {
+            $this->logger->warn(sprintf(
+                'baseUrl "%s" is not an absolute URL — falling back to %s.',
+                $config->baseUrl,
+                Config::DEFAULT_BASE_URL,
+            ));
+        }
     }
 
     /**
@@ -116,7 +124,9 @@ final class Client
             return;
         }
 
-        $payload = Payload::make($severity, $priority, $title, $description, $tags, $this->config);
+        $location = $this->config->captureLocation ? Location::capture() : null;
+
+        $payload = Payload::make($severity, $priority, $title, $description, $tags, $this->config, $location);
 
         if ($this->config->beforeSend !== null) {
             $result = ($this->config->beforeSend)($payload->toArray());

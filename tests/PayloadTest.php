@@ -108,4 +108,45 @@ final class PayloadTest extends TestCase
         $this->assertSame('scrubbed', $payload->description);
         $this->assertSame(['a', 'b'], $payload->tags);
     }
+
+    public function test_call_site_is_added_to_the_body_when_present(): void
+    {
+        $payload = Payload::make(
+            'critical',
+            'high',
+            'Payment error',
+            null,
+            [],
+            $this->plainConfig(),
+            ['file' => '/app/src/Checkout.php', 'line' => 42],
+        );
+
+        $body = $payload->toArray();
+        $this->assertSame('/app/src/Checkout.php', $body['file_name']);
+        $this->assertSame(42, $body['line_number']);
+    }
+
+    public function test_call_site_is_omitted_when_absent(): void
+    {
+        $payload = Payload::make('critical', 'high', 'Payment error', null, [], $this->plainConfig());
+
+        $body = $payload->toArray();
+        $this->assertArrayNotHasKey('file_name', $body);
+        $this->assertArrayNotHasKey('line_number', $body);
+    }
+
+    public function test_from_array_preserves_the_call_site(): void
+    {
+        $payload = Payload::fromArray([
+            'severity' => 'critical',
+            'priority' => 'high',
+            'title' => 'Payment error',
+            'tags' => [],
+            'file_name' => '/app/src/Checkout.php',
+            'line_number' => 42,
+        ]);
+
+        $this->assertSame('/app/src/Checkout.php', $payload->fileName);
+        $this->assertSame(42, $payload->lineNumber);
+    }
 }

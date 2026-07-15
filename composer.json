@@ -13,6 +13,12 @@
     "symfony"
   ],
   "homepage": "https://github.com/bug-board/bugboard-php",
+  "authors": [
+    {
+      "name": "BugBoard",
+      "homepage": "https://bugboard.dev"
+    }
+  ],
   "support": {
     "issues": "https://github.com/bug-board/bugboard-php/issues",
     "source": "https://github.com/bug-board/bugboard-php",
@@ -23,9 +29,9 @@
     "ext-json": "*",
     "php-http/discovery": "^1.19",
     "psr/http-client": "^1.0",
-    "psr/http-client-implementation": "*",
+    "psr/http-client-implementation": "^1.0",
     "psr/http-factory": "^1.0",
-    "psr/http-factory-implementation": "*",
+    "psr/http-factory-implementation": "^1.0",
     "psr/http-message": "^1.1 || ^2.0"
   },
   "require-dev": {

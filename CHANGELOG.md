@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-07-02
+## [1.0.0] - 2026-07-13
 
 ### Added
 
@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and delivery on app terminate (after the response is sent).
 - Symfony integration: `BugBoardBundle` with a typed config tree and an autowirable `Client`
   service.
+- `baseUrl` option (config key `base_url`) for pointing the SDK at a different BugBoard origin
+  (`http://localhost:8000`, trailing slash optional) — the SDK appends `/api/v1/tasks` itself.
+  A base URL that isn't absolute warns and falls back to `https://bugboard.dev`. Read the
+  resolved URL via `Config::endpoint()`.
 
-[unreleased]: https://github.com/bug-board/bugboard-php/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/bug-board/bugboard-php/releases/tag/v0.1.0
+[unreleased]: https://github.com/bug-board/bugboard-php/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/bug-board/bugboard-php/releases/tag/v1.0.0

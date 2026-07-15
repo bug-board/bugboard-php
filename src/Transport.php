@@ -89,10 +89,17 @@ final class Transport implements TransportInterface
     {
         // Auth headers are computed per attempt so HMAC timestamps stay
         // within the server's ±300 s replay window across retries.
-        $request = $this->requestFactory->createRequest('POST', $this->config->endpoint)
+        $request = $this->requestFactory->createRequest('POST', $this->config->endpoint())
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Accept', 'application/json')
             ->withBody($this->streamFactory->createStream($body));
+
+        // A header, not a body field: it stays readable when the body is encrypted,
+        // and out of reach of beforeSend (§5). It is not covered by the HMAC
+        // signature, which spans the body only.
+        if ($this->config->hideApiResponse) {
+            $request = $request->withHeader('X-Bb-Hide-Response', 'true');
+        }
 
         foreach ($this->authHeaders($body) as $name => $value) {
             $request = $request->withHeader($name, $value);

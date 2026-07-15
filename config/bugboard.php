@@ -12,8 +12,11 @@ declare(strict_types=1);
 |
 | Servers should use a secret key: BUGBOARD_KEY_ID + BUGBOARD_SIGNING_SECRET.
 | Requests are HMAC-signed and the secret never leaves the server. The
-| publishable-key option (api_key) exists for parity but belongs in
-| browser/mobile clients, not in PHP.
+| publishable-key option (api_key) is a client-side key and is rarely the
+| right choice in PHP.
+|
+| Every option below is env-driven. `before_send` is the exception — it is a
+| closure, so add it to this file directly if you want to scrub or veto reports.
 |
 */
 
@@ -33,6 +36,9 @@ return [
 
     // Master switch — handy to disable reporting in local/testing envs.
     'enabled' => env('BUGBOARD_ENABLED', true),
+
+    // Attach the file/line of each reporting call as file_name / line_number.
+    'capture_location' => env('BUGBOARD_CAPTURE_LOCATION', true),
 
     // Folded into every card's tags as env:<value> / release:<value>.
     'environment' => env('BUGBOARD_ENVIRONMENT', env('APP_ENV')),
@@ -54,5 +60,9 @@ return [
 
     // Log each report locally instead of sending it (local debugging / dry run).
     'log_locally' => env('BUGBOARD_LOG_LOCALLY', false),
+
+    // Ask the server to omit the created card from its response, so a report is
+    // not echoed back in plaintext. Set false to receive the full response body.
+    'hide_api_response' => env('BUGBOARD_HIDE_API_RESPONSE', true),
 
 ];

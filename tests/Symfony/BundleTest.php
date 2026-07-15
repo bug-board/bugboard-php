@@ -62,5 +62,7 @@ final class BundleTest extends TestCase
         $this->assertSame(5000, $options['timeout_ms']);
         $this->assertSame(3, $options['max_retries']);
         $this->assertFalse($options['debug']);
+        $this->assertTrue($options['capture_location']);
+        $this->assertTrue($options['hide_api_response']);
     }
 }

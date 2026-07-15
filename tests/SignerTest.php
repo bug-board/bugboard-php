@@ -10,9 +10,9 @@ use PHPUnit\Framework\TestCase;
 final class SignerTest extends TestCase
 {
     /**
-     * Reference vector shared with the JavaScript SDK's signer.test.ts,
-     * generated with the openssl recipe from the API reference §10 — all
-     * SDKs must produce these exact bytes for the same inputs.
+     * Reference vector generated with the openssl recipe from the API
+     * reference §10 — the signer must produce these exact bytes for the
+     * same inputs.
      */
     public function test_it_matches_the_openssl_reference_vector(): void
     {

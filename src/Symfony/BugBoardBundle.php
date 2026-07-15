@@ -20,8 +20,6 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  *     bugboard:
  *         key_id: '%env(BUGBOARD_KEY_ID)%'
  *         signing_secret: '%env(BUGBOARD_SIGNING_SECRET)%'
- *
- * Option names and defaults mirror the shared SDK specification.
  */
 final class BugBoardBundle extends AbstractBundle
 {
@@ -33,10 +31,11 @@ final class BugBoardBundle extends AbstractBundle
             ->children()
             ->scalarNode('key_id')->defaultNull()->info('Public key id (bbk_…) for HMAC auth.')->end()
             ->scalarNode('signing_secret')->defaultNull()->info('Signing secret (bb_sec_…); never transmitted.')->end()
-            ->scalarNode('api_key')->defaultNull()->info('Publishable key (bb_pub_…) — browser/mobile keys; rarely right for PHP.')->end()
+            ->scalarNode('api_key')->defaultNull()->info('Publishable key (bb_pub_…) — a client-side key; rarely right for PHP.')->end()
             ->scalarNode('encryption_public_key')->defaultNull()->info('Base64 X25519 public key; when set, payloads are encrypted in transit.')->end()
             ->scalarNode('encryption_key_id')->defaultNull()->info('Encryption key id (bbek_…) echoed in the envelope.')->end()
             ->booleanNode('enabled')->defaultTrue()->end()
+            ->booleanNode('capture_location')->defaultTrue()->info("Auto-capture the caller's file/line as file_name / line_number.")->end()
             ->scalarNode('environment')->defaultNull()->info('Added to every card as tag env:<value>.')->end()
             ->scalarNode('release')->defaultNull()->info('Added to every card as tag release:<value>.')->end()
             ->arrayNode('default_tags')->scalarPrototype()->end()->end()
@@ -46,6 +45,7 @@ final class BugBoardBundle extends AbstractBundle
             ->integerNode('max_retries')->defaultValue(3)->end()
             ->booleanNode('debug')->defaultFalse()->end()
             ->booleanNode('log_locally')->defaultFalse()->info('Log each report locally instead of sending it (local debugging / dry run).')->end()
+            ->booleanNode('hide_api_response')->defaultTrue()->info("Ask the server to omit the card from its response, so a report isn't echoed back.")->end()
             ->end();
     }
 

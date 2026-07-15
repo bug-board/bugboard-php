@@ -32,6 +32,8 @@ final readonly class Payload
         public string $title,
         public ?string $description,
         public array $tags,
+        public ?string $fileName = null,
+        public ?int $lineNumber = null,
     ) {}
 
     /**
@@ -40,6 +42,7 @@ final readonly class Payload
      * release, and default tags are folded into the tags.
      *
      * @param  array<int, string>|string  $tags
+     * @param  array{file: string, line: int}|null  $location  Auto-captured call site.
      */
     public static function make(
         string $severity,
@@ -48,6 +51,7 @@ final readonly class Payload
         string|Throwable|null $description,
         array|string $tags,
         Config $config,
+        ?array $location = null,
     ): self {
         $baseTags = $config->defaultTags;
 
@@ -65,6 +69,8 @@ final readonly class Payload
             title: mb_substr($title, 0, self::MAX_TITLE_LENGTH),
             description: self::describe($description),
             tags: self::normalizeTags([...$baseTags, ...self::normalizeTags($tags)]),
+            fileName: $location['file'] ?? null,
+            lineNumber: $location['line'] ?? null,
         );
     }
 
@@ -80,6 +86,8 @@ final readonly class Payload
         $priority = $data['priority'] ?? null;
         $description = $data['description'] ?? null;
         $tags = $data['tags'] ?? [];
+        $fileName = $data['file_name'] ?? null;
+        $lineNumber = $data['line_number'] ?? null;
 
         return new self(
             severity: in_array($severity, self::SEVERITIES, true) ? $severity : 'moderate',
@@ -87,13 +95,15 @@ final readonly class Payload
             title: mb_substr(is_scalar($data['title'] ?? null) ? (string) $data['title'] : '', 0, self::MAX_TITLE_LENGTH),
             description: is_string($description) ? self::describe($description) : null,
             tags: self::normalizeTags(is_array($tags) || is_string($tags) ? $tags : []),
+            fileName: is_string($fileName) ? $fileName : null,
+            lineNumber: is_int($lineNumber) ? $lineNumber : (is_numeric($lineNumber) ? (int) $lineNumber : null),
         );
     }
 
     /**
-     * The request-body array (description omitted when absent).
+     * The request-body array (description and call site omitted when absent).
      *
-     * @return array<string, string|list<string>>
+     * @return array<string, string|int|list<string>>
      */
     public function toArray(): array
     {
@@ -106,6 +116,14 @@ final readonly class Payload
 
         if ($this->description !== null) {
             $body['description'] = $this->description;
+        }
+
+        if ($this->fileName !== null) {
+            $body['file_name'] = $this->fileName;
+        }
+
+        if ($this->lineNumber !== null) {
+            $body['line_number'] = $this->lineNumber;
         }
 
         return $body;

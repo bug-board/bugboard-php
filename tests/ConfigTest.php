@@ -22,7 +22,8 @@ final class ConfigTest extends TestCase
         $this->assertSame(3, $config->maxRetries);
         $this->assertFalse($config->debug);
         $this->assertFalse($config->logLocally);
-        $this->assertSame('https://bugboard.dev/api/v1/tasks', $config->endpoint);
+        $this->assertTrue($config->hideApiResponse);
+        $this->assertSame('https://bugboard.dev/api/v1/tasks', $config->endpoint());
     }
 
     public function test_auth_scheme_is_picked_from_the_configured_credentials(): void
@@ -46,10 +47,35 @@ final class ConfigTest extends TestCase
         $this->assertFalse((new Config)->active());
     }
 
-    public function test_signing_path_follows_the_endpoint(): void
+    public function test_signing_path_is_always_the_api_route(): void
     {
         $this->assertSame('/api/v1/tasks', (new Config)->path());
-        $this->assertSame('/api/v1/tasks', (new Config(endpoint: 'http://127.0.0.1:8080/api/v1/tasks'))->path());
+        $this->assertSame('/api/v1/tasks', (new Config(baseUrl: 'http://127.0.0.1:8080/nested'))->path());
+    }
+
+    public function test_the_api_route_is_appended_to_the_base_url(): void
+    {
+        foreach (['http://localhost:8000', 'http://localhost:8000/'] as $baseUrl) {
+            $this->assertSame('http://localhost:8000/api/v1/tasks', (new Config(baseUrl: $baseUrl))->endpoint());
+        }
+    }
+
+    public function test_only_the_origin_of_the_base_url_is_kept(): void
+    {
+        $config = new Config(baseUrl: 'https://example.com/bugboard?x=1');
+
+        $this->assertSame('https://example.com', $config->origin());
+        $this->assertSame('https://example.com/api/v1/tasks', $config->endpoint());
+    }
+
+    public function test_a_relative_base_url_falls_back_to_bugboard(): void
+    {
+        foreach (['localhost:8000', 'not a url', '/api/v1/tasks', ''] as $baseUrl) {
+            $config = new Config(baseUrl: $baseUrl);
+
+            $this->assertNull($config->origin());
+            $this->assertSame('https://bugboard.dev/api/v1/tasks', $config->endpoint());
+        }
     }
 
     public function test_sample_rate_is_clamped_into_the_unit_interval(): void
@@ -71,6 +97,7 @@ final class ConfigTest extends TestCase
             'max_retries' => '2',
             'debug' => 'true',
             'log_locally' => 'true',
+            'hide_api_response' => 'false',
         ]);
 
         $this->assertSame('hmac', $config->authScheme());
@@ -82,11 +109,18 @@ final class ConfigTest extends TestCase
         $this->assertSame(2, $config->maxRetries);
         $this->assertTrue($config->debug);
         $this->assertTrue($config->logLocally);
+        $this->assertFalse($config->hideApiResponse);
     }
 
     public function test_from_array_accepts_camel_case_log_locally(): void
     {
         $this->assertTrue(Config::fromArray(['logLocally' => true])->logLocally);
+    }
+
+    public function test_from_array_defaults_hide_api_response_on_and_accepts_camel_case(): void
+    {
+        $this->assertTrue(Config::fromArray([])->hideApiResponse);
+        $this->assertFalse(Config::fromArray(['hideApiResponse' => false])->hideApiResponse);
     }
 
     public function test_from_array_treats_blank_strings_as_absent(): void
