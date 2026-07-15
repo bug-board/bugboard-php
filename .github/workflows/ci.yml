@@ -19,7 +19,7 @@ jobs:
           php-version: '8.3'
           extensions: sodium
           coverage: none
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@v4
       - run: composer lint
       - run: composer analyse
 
@@ -37,5 +37,5 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: sodium
           coverage: none
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@v4
       - run: composer test
