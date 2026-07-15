@@ -47,6 +47,106 @@ BUGBOARD_SIGNING_SECRET=bb_sec_xxxxxxxx
 
 > Get keys from your BugBoard project under **Settings → API Keys** (create a **Secret** key).
 
+## Installing php-sodium (for payload encryption)
+
+`ext-sodium` ships with PHP by default on most systems, but if you enable payload encryption (or `php -m` doesn't list sodium), install and configure it:
+
+### 1. Install the extension
+
+Match the package to the PHP version you actually run (`php -v`):
+
+#### Debian / Ubuntu
+
+```bash
+sudo apt update
+sudo apt install php8.3-sodium
+```
+
+#### RHEL / CentOS / Rocky / AlmaLinux / Fedora
+
+```bash
+sudo dnf install php-sodium
+```
+
+#### Alpine
+
+```bash
+apk add php83-sodium
+```
+
+#### macOS (Homebrew)
+
+Homebrew's PHP already includes sodium, so there is usually nothing to do:
+
+```bash
+brew install php
+```
+
+#### Docker
+
+On the official php images, libsodium's headers aren't in the base image, so install them and compile the extension:
+
+```dockerfile
+RUN apt-get update \
+    && apt-get install -y libsodium-dev \
+    && docker-php-ext-install sodium
+```
+
+#### Windows
+
+`php_sodium.dll` ships with the official builds. Nothing to install; go straight to step 3.
+
+#### Building PHP from source
+
+Configure with `--with-sodium`.
+
+### 2. Enable it
+
+The Debian/Ubuntu and RHEL packages normally enable the extension for you. If `php -m` still doesn't list it, load it explicitly.
+
+On Debian / Ubuntu:
+
+```bash
+sudo phpenmod sodium
+```
+
+Anywhere else (and on Windows), add this line to `php.ini` — run `php --ini` to find which file is in use:
+
+```ini
+extension=sodium
+```
+
+### 3. Restart the process that serves your app
+
+The extension is loaded at startup, so a running worker won't pick it up:
+
+```bash
+sudo systemctl restart php8.3-fpm   # PHP-FPM
+sudo systemctl restart apache2      # mod_php
+```
+
+> **The gotcha:** The CLI and FPM usually read different php.ini files. `php -m` tells you about the CLI only, so it can happily print sodium while your web requests still crash. Check the runtime your app actually uses:
+>
+> ```bash
+> php-fpm -m | grep sodium
+> ```
+>
+> — or hit a `phpinfo()` page and search for "sodium".
+
+### 4. Verify a sealed box actually works
+
+The real proof is a round trip, not just a loaded extension:
+
+```bash
+php -r '
+$keypair = sodium_crypto_box_keypair();
+$sealed = sodium_crypto_box_seal("hello", sodium_crypto_box_publickey($keypair));
+echo sodium_crypto_box_seal_open($sealed, $keypair), PHP_EOL;
+'
+```
+
+If it prints `hello`, sealed boxes work and the SDK can encrypt. If it fatals on an undefined function, the extension still isn't loaded in that runtime — go back to step 3.
+
 ## Laravel
 
 The package is auto-discovered — no manual registration. Configure via `.env` (above) and report
