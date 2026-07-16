@@ -4,9 +4,17 @@
 [![Packagist Version](https://img.shields.io/packagist/v/bugboard/sdk.svg)](https://packagist.org/packages/bugboard/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-The official [BugBoard](https://bugboard.dev) SDK for PHP. Report errors as **cards** on your
-project board — from plain PHP, **Laravel**, **Symfony**, or any framework with a PSR-18 HTTP
+The official [BugBoard](https://bugboard.dev) SDK for PHP. Report errors as **cards** on your project board — from plain PHP, **Laravel**, **Symfony**, or any framework with a PSR-18 HTTP
 client.
+
+<div align="center">
+
+# 🚧 WORK IN PROGRESS 🚧
+
+**[BugBoard.dev](https://bugboard.dev) and its SDKs are currently under active development.**
+🚨 **Please do not use this package for anything right now.** 🚨
+**Once an official release is published, it will be available for everyone.**
+</div>
 
 ```php
 use BugBoard\Laravel\Facades\BugBoard;
