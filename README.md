@@ -30,6 +30,22 @@ Reporting is **fire-and-forget**: the call buffers the report and returns immedi
 happens after your response is sent (with retries and backoff), and the SDK **never throws into
 your app**.
 
+> 📖 **[Usage guide](docs/USAGE.md)** — in-depth integration for plain PHP, Laravel, and Symfony:
+> exception handlers, queue workers, Monolog, config caching, testing, and troubleshooting.
+
+## Contents
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Installing php-sodium](#installing-php-sodium-for-payload-encryption) — only for payload encryption
+- **Framework setup** — [Laravel](#laravel) · [Symfony](#symfony) · [Plain PHP](#plain-php-any-framework)
+- [The 16 reporting methods](#the-16-reporting-methods)
+- [Configuration](#configuration) — every option, and [scrubbing PII](#scrubbing-pii)
+- [Encrypting sensitive reports](#encrypting-sensitive-reports)
+- [Delivery semantics](#delivery-semantics) — retries, dedup, quotas, [exceptions](#exceptions)
+- [Testing](#testing)
+- [Contributing](#contributing) · [License](#license)
+
 ## Requirements
 
 - PHP 8.2+
@@ -178,6 +194,16 @@ public function store(Request $request, BugBoardClient $bugboard)
     $bugboard->moderate('Slow image upload', null, 'uploads');
 }
 ```
+
+> If you have disabled package discovery (`extra.laravel.dont-discover` in your `composer.json`),
+> register the provider yourself in `bootstrap/providers.php`:
+>
+> ```php
+> return [
+>     App\Providers\AppServiceProvider::class,
+>     BugBoard\Laravel\BugBoardServiceProvider::class,
+> ];
+> ```
 
 Buffered reports are delivered when the app **terminates** — after the response has gone out —
 so reporting never adds latency to a request. To customize defaults, publish the config:
