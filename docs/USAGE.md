@@ -10,12 +10,14 @@ gotchas specific to each one.
 ## Contents
 
 - [Core concepts](#core-concepts) — read this first, everything else builds on it
+- [What the description accepts](#what-the-description-accepts)
 - [Installation](#installation)
 - [Credentials](#credentials)
 - [Plain PHP](#plain-php)
 - [Laravel](#laravel)
 - [Symfony](#symfony)
 - [Configuration reference](#configuration-reference)
+- [Quota suppression](#quota-suppression)
 - [Payload encryption](#payload-encryption)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
@@ -43,12 +45,15 @@ Every one takes the same arguments:
 ```php
 $bugboard->criticalHigh(
     'Payment capture failed',        // string  — required, clamped to 255 chars
-    $exception,                      // string|Throwable|null — optional
+    $exception,                      // mixed   — optional; see below
     ['payments', 'stripe'],          // array|string (CSV) — optional
 );
 ```
 
 Most applications only ever use the four medium methods: `critical`, `major`, `moderate`, `minor`.
+
+The description accepts **anything** — see
+[What the description accepts](#what-the-description-accepts).
 
 **2. Reporting is fire-and-forget and never throws.**
 
@@ -79,6 +84,46 @@ $bugboard->major("Stripe webhook {$request->id} failed at " . now());
 ```
 
 Put the variable parts in the description or tags, never in the title.
+
+---
+
+## What the description accepts
+
+Pass whatever you already have — the SDK serializes it. There is no need to `json_encode()` first.
+
+| You pass                | You get on the card                                    |
+| ----------------------- | ------------------------------------------------------ |
+| a string                | the string, unchanged                                  |
+| a `Throwable`           | class, message, `file:line`, and stack trace           |
+| an array or object      | pretty-printed JSON, two-space indented                |
+| a scalar                | `true`, `false`, `0`, `1.5`, `NaN`, `Infinity`         |
+| `null`                  | the field is omitted entirely                          |
+
+```php
+BugBoard::major('Validation failed', ['user_id' => $user->id, 'errors' => $validator->errors()]);
+```
+
+Objects resolve through a ladder — the first rung that can represent the value wins:
+
+1. **`Throwable`** — class, message, `file:line`, trace.
+2. **`JsonSerializable`** — whatever `jsonSerialize()` returns.
+3. **`Illuminate\Contracts\Support\Arrayable`** — `toArray()`, then JSON. This is what makes
+   `BugBoard::critical('…', $request)` useful; see [Attaching a request](#attaching-a-request).
+4. **`__toString()`** — the rendered string.
+5. **`Traversable`** — materialized (bounded at 1 000 items, so an infinite generator can't hang
+   your app), then JSON.
+6. **Anything else** — `json_encode()`, falling back to a class label like
+   `[App\Models\Order]` when the object has no public state to encode.
+
+The ladder is total: it never throws. If your `jsonSerialize()` or `__toString()` explodes, you get
+the class label rather than a lost report. Recursive arrays keep everything but the cycle, which
+becomes `null`. Resources render as `[resource (stream)]`.
+
+A description is clamped to 60 000 characters; anything longer ends with `… truncated`.
+
+> **Serialized descriptions vary per report.** Deduplication matches on title and description, so a
+> card whose description is a JSON dump of per-request data will not dedupe. Keep the title stable —
+> see fact 4 in [Core concepts](#core-concepts).
 
 ---
 
@@ -380,6 +425,34 @@ public function store(Request $request, BugBoardClient $bugboard)
 ```php
 app('bugboard')->minor('Tooltip misaligned');
 ```
+
+#### Attaching a request
+
+`Illuminate\Http\Request` implements `Arrayable`, so you can pass one straight through:
+
+```php
+BugBoard::critical('Validation failed', $request);
+```
+
+Two things to know:
+
+- **`Request::toArray()` returns input only** — the merged query string and body. Not the URL, not
+  the method, not the headers. If you want those, build the array yourself:
+
+  ```php
+  BugBoard::critical('Validation failed', [
+      'url' => $request->fullUrl(),
+      'method' => $request->method(),
+      'input' => $request->except(['password', 'password_confirmation']),
+  ]);
+  ```
+
+- **Request input routinely contains secrets** — passwords, tokens, card details. Passing a whole
+  request ships all of it to BugBoard. Use `$request->except([...])` as above, or scrub centrally
+  in [`beforeSend`](#beforesend-in-detail), which sees every report.
+
+Eloquent models and collections are `Arrayable` too, with the same caveat: `$user->toArray()`
+includes every non-hidden attribute.
 
 ### Delivery: the terminating phase
 
@@ -910,12 +983,70 @@ The return value is re-validated through `Payload::fromArray()`
 an unknown severity falls back to `moderate`, an unknown priority to `medium`, and every length
 clamp is re-applied. You do not need to be careful about lengths.
 
+The hook receives `description` as a string (or absent) — whatever was passed to the reporting call
+has already been serialized, so a scrubber can treat it as text. You may also *return* a non-string
+description; it goes through the same ladder as a reporting argument, so
+`$payload['description'] = ['redacted' => true]` works.
+
 `hideApiResponse` is deliberately *not* in the payload — it's a header, so it stays out of reach of
 `beforeSend` and remains readable when the body is encrypted.
 
 Keep the closure fast and total. It runs synchronously inside the reporting call, on your request
 path. If it throws, the report is lost and the error goes to the debug log — the backstop catches
 it, so your app is unaffected.
+
+---
+
+## Quota suppression
+
+When your account's event allowance runs out — or a project is paused or archived — the server does
+not reject the report. It accepts it, discards it, and answers `200` with a `dropped` flag, so that
+the platform's billing and lifecycle state never surfaces as a failure inside the app being
+monitored. The SDK reads that flag and does not retry.
+
+Since 1.1.0 it also **stops sending**. Retrying was never the problem; the problem was the next
+report, and the one after that, each paying for a round trip the server had already decided to throw
+away. After a drop the SDK discards reports locally until the drop is expected to have cleared:
+
+| Cause                        | Reporting resumes    |
+| ---------------------------- | -------------------- |
+| Allowance exhausted          | Next midnight UTC    |
+| Project paused or archived   | 30 minutes           |
+
+One report is let through when the window passes, to find out whether anything changed. If it is
+dropped again the gate re-closes. So an account over its allowance makes roughly one request per
+window instead of one per report, and reporting resumes on its own with nothing to reset.
+
+### Making it survive the request
+
+PHP-FPM builds a fresh process for every request, so a gate held in memory re-opens on every request
+— which on a busy site means no meaningful suppression at all. Persisting the deadline is what fixes
+that.
+
+**On Laravel and Symfony this is already wired to your application cache.** Nothing to do.
+
+Standalone, pass a `QuotaStore` to `ClientBuilder::create()`:
+
+```php
+use BugBoard\ClientBuilder;
+use BugBoard\Config;
+use BugBoard\Psr16QuotaStore;
+
+$client = ClientBuilder::create(
+    new Config(keyId: '…', signingSecret: '…'),
+    quotaStore: new Psr16QuotaStore($yourPsr16Cache),
+);
+```
+
+`Psr16QuotaStore` works with any PSR-16 cache (install `psr/simple-cache` and an implementation).
+For anything else — Redis directly, APCu, a file — implement the three-method `QuotaStore` interface
+yourself.
+
+Without a store the gate still works for the life of the process, which is everything a CLI command,
+a queue worker, or an Octane process needs.
+
+A cache that is unreachable degrades to an open gate: reports flow again as if there were no store.
+Suppression is an optimization, and losing it must never cost you a report.
 
 ---
 
@@ -1076,8 +1207,10 @@ Work down this list:
 4. **Sampled out.** Debug prints `Report sampled out.` — check `sampleRate`.
 5. **Dropped by `beforeSend`.** Debug prints `Report dropped by beforeSend.`
 6. **Queue full.** Debug prints `Queue full (100); report dropped`. Check `droppedCount()`.
-7. **Quota exhausted.** Debug prints `Report dropped: the project's monthly quota is exhausted.` The
-   server accepted and dropped it — by design, and never retried.
+7. **Quota exhausted, or the project is paused/archived.** Debug prints `Report dropped by the
+   server: …`, naming the cause and when reporting resumes. The server accepted and dropped it — by
+   design, and never retried. Reports after that print `Report discarded locally: suppressed until
+   …`; the SDK has stopped sending on purpose. See [Quota suppression](#quota-suppression).
 8. **Auth rejected.** Debug shows a 401/403. Check the key is for the right project and hasn't been
    revoked.
 

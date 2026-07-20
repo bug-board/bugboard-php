@@ -8,7 +8,9 @@ use BadMethodCallException;
 use BugBoard\Client;
 use BugBoard\Config;
 use BugBoard\Payload;
+use BugBoard\Tests\Support\ArrayableRequest;
 use BugBoard\Tests\Support\CollectingTransport;
+use BugBoard\Tests\Support\ThrowingSerializer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -74,6 +76,52 @@ final class ClientTest extends TestCase
 
         $this->assertSame('p95 went from 2s to 9s', $transport->sent[0]->description);
         $this->assertSame(['checkout', 'perf'], $transport->sent[0]->tags);
+    }
+
+    public function test_non_string_descriptions_reach_the_transport_instead_of_being_swallowed(): void
+    {
+        $transport = new CollectingTransport;
+        $client = $this->client(transport: $transport);
+
+        // Before descriptions were typed mixed, this raised a TypeError that
+        // Client::__call() swallowed into a debug-gated log line — the report
+        // shipped with its description silently missing.
+        $client->critical('Test', ['user_id' => 42, 'cart' => ['a', 'b']]);
+        $client->flush();
+
+        $this->assertCount(1, $transport->sent);
+        $this->assertStringContainsString('"user_id": 42', (string) $transport->sent[0]->description);
+    }
+
+    public function test_an_arrayable_request_is_reported_as_its_input(): void
+    {
+        $transport = new CollectingTransport;
+        $client = $this->client(transport: $transport);
+
+        $client->critical('Test', new ArrayableRequest(['coupon' => 'SAVE10']));
+        $client->flush();
+
+        $this->assertSame("{\n  \"coupon\": \"SAVE10\"\n}", $transport->sent[0]->description);
+    }
+
+    public function test_a_before_send_hook_may_return_a_non_string_description(): void
+    {
+        $transport = new CollectingTransport;
+        $config = new Config(
+            keyId: 'bbk_test',
+            signingSecret: 'bb_sec_test',
+            beforeSend: static function (array $payload): array {
+                $payload['description'] = ['redacted' => true];
+
+                return $payload;
+            },
+        );
+
+        $client = $this->client($config, $transport);
+        $client->major('Login failed', 'user-42');
+        $client->flush();
+
+        $this->assertStringContainsString('"redacted": true', (string) $transport->sent[0]->description);
     }
 
     public function test_captures_the_caller_file_and_line_by_default(): void
@@ -253,6 +301,18 @@ final class ClientTest extends TestCase
         );
 
         $client->critical('still safe', new RuntimeException('cause'));
+
+        // Every pathological description the ladder has to survive. A throw in
+        // describe() would be caught by __call() and silently drop the report.
+        $handle = fopen('php://memory', 'r');
+        $cyclic = ['a' => 1];
+        $cyclic['self'] = &$cyclic;
+
+        foreach ([$handle, $cyclic, new ThrowingSerializer, NAN, false, static fn () => 1] as $value) {
+            $client->critical('still safe', $value);
+        }
+
+        fclose($handle);
 
         $failing = $this->client(transport: new CollectingTransport(failing: true));
         $failing->critical('boom');
