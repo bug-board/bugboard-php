@@ -17,22 +17,22 @@ use Throwable;
  * (explicit or registered at shutdown), and it **never throws** — a
  * monitoring SDK must not crash the app it monitors.
  *
- * @method void critical(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void criticalLow(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void criticalMedium(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void criticalHigh(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void major(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void majorLow(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void majorMedium(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void majorHigh(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void moderate(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void moderateLow(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void moderateMedium(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void moderateHigh(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void minor(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void minorLow(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void minorMedium(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
- * @method void minorHigh(string $title, string|\Throwable|null $description = null, array<int, string>|string $tags = [])
+ * @method void critical(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void criticalLow(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void criticalMedium(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void criticalHigh(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void major(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void majorLow(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void majorMedium(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void majorHigh(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void moderate(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void moderateLow(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void moderateMedium(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void moderateHigh(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void minor(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void minorLow(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void minorMedium(string $title, mixed $description = null, array<int, string>|string $tags = [])
+ * @method void minorHigh(string $title, mixed $description = null, array<int, string>|string $tags = [])
  */
 final class Client
 {
@@ -109,7 +109,7 @@ final class Client
         string $severity,
         string $priority,
         string $title,
-        string|Throwable|null $description = null,
+        mixed $description = null,
         array|string $tags = [],
     ): void {
         if (! $this->config->active()) {

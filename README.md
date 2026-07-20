@@ -306,7 +306,7 @@ $bugboard = ClientBuilder::createFromArray([
 
 ## The 16 reporting methods
 
-Every method takes `(string $title, string|\Throwable|null $description = null, array|string $tags = [])`.
+Every method takes `(string $title, mixed $description = null, array|string $tags = [])`.
 The method name sets the card's severity and priority — there is no generic `report()`:
 
 |              | low           | medium (default)              | high           |
@@ -318,6 +318,18 @@ The method name sets the card's severity and priority — there is no generic `r
 
 Most apps only need the four medium-priority methods: `critical`, `major`, `moderate`, `minor`.
 Tags accept an array (`['ui', 'checkout']`) or a CSV string (`'ui,checkout'`).
+
+The description accepts anything — no `json_encode()` needed. A `Throwable` contributes its message
+and trace, arrays and objects are pretty-printed as JSON, and `Arrayable` objects (a Laravel
+`Request`, an Eloquent model) are unwrapped via `toArray()` first:
+
+```php
+BugBoard::critical('Validation failed', $request);
+BugBoard::major('Bad cart state', ['user_id' => $user->id, 'items' => $cart->items]);
+```
+
+Mind what you attach: request input and model attributes routinely contain secrets. See
+[What the description accepts](docs/USAGE.md#what-the-description-accepts).
 
 `$client->droppedCount()` reports how many reports the buffer discarded (see `maxQueueSize` below) —
 useful as a health metric if you sample heavily or report in tight loops.

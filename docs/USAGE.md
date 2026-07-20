@@ -10,6 +10,7 @@ gotchas specific to each one.
 ## Contents
 
 - [Core concepts](#core-concepts) — read this first, everything else builds on it
+- [What the description accepts](#what-the-description-accepts)
 - [Installation](#installation)
 - [Credentials](#credentials)
 - [Plain PHP](#plain-php)
@@ -43,12 +44,15 @@ Every one takes the same arguments:
 ```php
 $bugboard->criticalHigh(
     'Payment capture failed',        // string  — required, clamped to 255 chars
-    $exception,                      // string|Throwable|null — optional
+    $exception,                      // mixed   — optional; see below
     ['payments', 'stripe'],          // array|string (CSV) — optional
 );
 ```
 
 Most applications only ever use the four medium methods: `critical`, `major`, `moderate`, `minor`.
+
+The description accepts **anything** — see
+[What the description accepts](#what-the-description-accepts).
 
 **2. Reporting is fire-and-forget and never throws.**
 
@@ -79,6 +83,46 @@ $bugboard->major("Stripe webhook {$request->id} failed at " . now());
 ```
 
 Put the variable parts in the description or tags, never in the title.
+
+---
+
+## What the description accepts
+
+Pass whatever you already have — the SDK serializes it. There is no need to `json_encode()` first.
+
+| You pass                | You get on the card                                    |
+| ----------------------- | ------------------------------------------------------ |
+| a string                | the string, unchanged                                  |
+| a `Throwable`           | class, message, `file:line`, and stack trace           |
+| an array or object      | pretty-printed JSON, two-space indented                |
+| a scalar                | `true`, `false`, `0`, `1.5`, `NaN`, `Infinity`         |
+| `null`                  | the field is omitted entirely                          |
+
+```php
+BugBoard::major('Validation failed', ['user_id' => $user->id, 'errors' => $validator->errors()]);
+```
+
+Objects resolve through a ladder — the first rung that can represent the value wins:
+
+1. **`Throwable`** — class, message, `file:line`, trace.
+2. **`JsonSerializable`** — whatever `jsonSerialize()` returns.
+3. **`Illuminate\Contracts\Support\Arrayable`** — `toArray()`, then JSON. This is what makes
+   `BugBoard::critical('…', $request)` useful; see [Attaching a request](#attaching-a-request).
+4. **`__toString()`** — the rendered string.
+5. **`Traversable`** — materialized (bounded at 1 000 items, so an infinite generator can't hang
+   your app), then JSON.
+6. **Anything else** — `json_encode()`, falling back to a class label like
+   `[App\Models\Order]` when the object has no public state to encode.
+
+The ladder is total: it never throws. If your `jsonSerialize()` or `__toString()` explodes, you get
+the class label rather than a lost report. Recursive arrays keep everything but the cycle, which
+becomes `null`. Resources render as `[resource (stream)]`.
+
+A description is clamped to 60 000 characters; anything longer ends with `… truncated`.
+
+> **Serialized descriptions vary per report.** Deduplication matches on title and description, so a
+> card whose description is a JSON dump of per-request data will not dedupe. Keep the title stable —
+> see fact 4 in [Core concepts](#core-concepts).
 
 ---
 
@@ -380,6 +424,34 @@ public function store(Request $request, BugBoardClient $bugboard)
 ```php
 app('bugboard')->minor('Tooltip misaligned');
 ```
+
+#### Attaching a request
+
+`Illuminate\Http\Request` implements `Arrayable`, so you can pass one straight through:
+
+```php
+BugBoard::critical('Validation failed', $request);
+```
+
+Two things to know:
+
+- **`Request::toArray()` returns input only** — the merged query string and body. Not the URL, not
+  the method, not the headers. If you want those, build the array yourself:
+
+  ```php
+  BugBoard::critical('Validation failed', [
+      'url' => $request->fullUrl(),
+      'method' => $request->method(),
+      'input' => $request->except(['password', 'password_confirmation']),
+  ]);
+  ```
+
+- **Request input routinely contains secrets** — passwords, tokens, card details. Passing a whole
+  request ships all of it to BugBoard. Use `$request->except([...])` as above, or scrub centrally
+  in [`beforeSend`](#beforesend-in-detail), which sees every report.
+
+Eloquent models and collections are `Arrayable` too, with the same caveat: `$user->toArray()`
+includes every non-hidden attribute.
 
 ### Delivery: the terminating phase
 
@@ -909,6 +981,11 @@ The return value is re-validated through `Payload::fromArray()`
 ([`Payload.php:83-101`](../src/Payload.php#L83-L101)), so a hook cannot produce an invalid request:
 an unknown severity falls back to `moderate`, an unknown priority to `medium`, and every length
 clamp is re-applied. You do not need to be careful about lengths.
+
+The hook receives `description` as a string (or absent) — whatever was passed to the reporting call
+has already been serialized, so a scrubber can treat it as text. You may also *return* a non-string
+description; it goes through the same ladder as a reporting argument, so
+`$payload['description'] = ['redacted' => true]` works.
 
 `hideApiResponse` is deliberately *not* in the payload — it's a header, so it stays out of reach of
 `beforeSend` and remains readable when the body is encrypted.

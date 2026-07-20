@@ -36,6 +36,7 @@
   },
   "require-dev": {
     "guzzlehttp/guzzle": "^7.8",
+    "illuminate/contracts": "^11.0 || ^12.0",
     "laravel/pint": "^1.21",
     "orchestra/testbench": "^9.0 || ^10.0",
     "phpstan/phpstan": "^2.1",
