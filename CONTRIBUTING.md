@@ -87,9 +87,26 @@ ci: run tests on PHP 8.5
 ## Releases
 
 Maintainers cut releases. Versioning follows [SemVer](https://semver.org/); the changelog
-follows [Keep a Changelog](https://keepachangelog.com/). To release: move the `[Unreleased]`
-changelog entries under the new version and tag it (`vX.Y.Z`) — Packagist picks up new tags
-automatically.
+follows [Keep a Changelog](https://keepachangelog.com/).
+
+**Tagging is automatic.** Merging to `main` runs semantic-release, which derives the next version
+from the Conventional Commit messages in the merge, creates the `vX.Y.Z` tag, and publishes the
+GitHub release. Packagist picks the tag up from there. Nothing is tagged by hand.
+
+**`CHANGELOG.md` is not automatic** — semantic-release does not write it, deliberately, because
+generated commit-message bullets don't explain *why* a change was made. Before merging a release
+PR, move the `[Unreleased]` entries under a new version heading and update the link refs at the
+bottom of the file.
+
+Which means the heading you write has to match the version the commits will produce:
+
+| Commits in the release | Bump  |
+| ---------------------- | ----- |
+| any `feat:`            | minor |
+| only `fix:` / `perf:`  | patch |
+| any `BREAKING CHANGE:` | major |
+
+Get that wrong and the changelog says `1.1.0` while the tag says `1.0.1`.
 
 ## Code of conduct
 
