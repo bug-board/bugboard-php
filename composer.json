@@ -1,16 +1,28 @@
 {
   "name": "bugboard/sdk",
-  "description": "Official BugBoard SDK for PHP — report errors as cards on your project board, with first-class Laravel and Symfony support.",
+  "description": "Official BugBoard SDK for PHP — report bugs as cards on your project board, with first-class Laravel and Symfony support.",
   "license": "MIT",
   "type": "library",
   "keywords": [
     "bugboard",
+    "bug-tracking",
+    "bug-reporting",
+    "bug-monitoring",
+    "bug-tracker",
     "error-tracking",
     "error-reporting",
     "error-monitoring",
-    "bug-tracker",
+    "crash-reporting",
+    "exception-tracking",
+    "exception-handling",
+    "issue-tracking",
+    "observability",
+    "monitoring",
+    "logging",
+    "analytics",
     "laravel",
-    "symfony"
+    "symfony",
+    "psr-18"
   ],
   "homepage": "https://github.com/bug-board/bugboard-php",
   "authors": [

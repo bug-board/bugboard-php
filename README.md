@@ -4,7 +4,7 @@
 [![Packagist Version](https://img.shields.io/packagist/v/bugboard/sdk.svg)](https://packagist.org/packages/bugboard/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-The official [BugBoard](https://bugboard.dev) SDK for PHP. Report errors as **cards** on your project board — from plain PHP, **Laravel**, **Symfony**, or any framework with a PSR-18 HTTP
+The official [BugBoard](https://bugboard.dev) SDK for PHP. Report bugs as **cards** on your project board — from plain PHP, **Laravel**, **Symfony**, or any framework with a PSR-18 HTTP
 client.
 
 <div align="center">
