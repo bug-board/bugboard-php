@@ -24,6 +24,7 @@
     "symfony",
     "psr-18"
   ],
+  "readme": "README.md",
   "homepage": "https://github.com/bug-board/bugboard-php",
   "authors": [
     {
