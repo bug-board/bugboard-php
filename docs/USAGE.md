@@ -17,6 +17,7 @@ gotchas specific to each one.
 - [Laravel](#laravel)
 - [Symfony](#symfony)
 - [Configuration reference](#configuration-reference)
+- [Quota suppression](#quota-suppression)
 - [Payload encryption](#payload-encryption)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
@@ -996,6 +997,59 @@ it, so your app is unaffected.
 
 ---
 
+## Quota suppression
+
+When your account's event allowance runs out — or a project is paused or archived — the server does
+not reject the report. It accepts it, discards it, and answers `200` with a `dropped` flag, so that
+the platform's billing and lifecycle state never surfaces as a failure inside the app being
+monitored. The SDK reads that flag and does not retry.
+
+Since 1.1.0 it also **stops sending**. Retrying was never the problem; the problem was the next
+report, and the one after that, each paying for a round trip the server had already decided to throw
+away. After a drop the SDK discards reports locally until the drop is expected to have cleared:
+
+| Cause                        | Reporting resumes    |
+| ---------------------------- | -------------------- |
+| Allowance exhausted          | Next midnight UTC    |
+| Project paused or archived   | 30 minutes           |
+
+One report is let through when the window passes, to find out whether anything changed. If it is
+dropped again the gate re-closes. So an account over its allowance makes roughly one request per
+window instead of one per report, and reporting resumes on its own with nothing to reset.
+
+### Making it survive the request
+
+PHP-FPM builds a fresh process for every request, so a gate held in memory re-opens on every request
+— which on a busy site means no meaningful suppression at all. Persisting the deadline is what fixes
+that.
+
+**On Laravel and Symfony this is already wired to your application cache.** Nothing to do.
+
+Standalone, pass a `QuotaStore` to `ClientBuilder::create()`:
+
+```php
+use BugBoard\ClientBuilder;
+use BugBoard\Config;
+use BugBoard\Psr16QuotaStore;
+
+$client = ClientBuilder::create(
+    new Config(keyId: '…', signingSecret: '…'),
+    quotaStore: new Psr16QuotaStore($yourPsr16Cache),
+);
+```
+
+`Psr16QuotaStore` works with any PSR-16 cache (install `psr/simple-cache` and an implementation).
+For anything else — Redis directly, APCu, a file — implement the three-method `QuotaStore` interface
+yourself.
+
+Without a store the gate still works for the life of the process, which is everything a CLI command,
+a queue worker, or an Octane process needs.
+
+A cache that is unreachable degrades to an open gate: reports flow again as if there were no store.
+Suppression is an optimization, and losing it must never cost you a report.
+
+---
+
 ## Payload encryption
 
 By default, report bodies are plaintext JSON over TLS. That's fine against network eavesdroppers,
@@ -1153,8 +1207,10 @@ Work down this list:
 4. **Sampled out.** Debug prints `Report sampled out.` — check `sampleRate`.
 5. **Dropped by `beforeSend`.** Debug prints `Report dropped by beforeSend.`
 6. **Queue full.** Debug prints `Queue full (100); report dropped`. Check `droppedCount()`.
-7. **Quota exhausted.** Debug prints `Report dropped: the project's monthly quota is exhausted.` The
-   server accepted and dropped it — by design, and never retried.
+7. **Quota exhausted, or the project is paused/archived.** Debug prints `Report dropped by the
+   server: …`, naming the cause and when reporting resumes. The server accepted and dropped it — by
+   design, and never retried. Reports after that print `Report discarded locally: suppressed until
+   …`; the SDK has stopped sending on purpose. See [Quota suppression](#quota-suppression).
 8. **Auth rejected.** Debug shows a 401/403. Check the key is for the right project and hasn't been
    revoked.
 

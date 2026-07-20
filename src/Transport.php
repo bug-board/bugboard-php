@@ -28,13 +28,18 @@ final class Transport implements TransportInterface
 
     private const MAX_BACKOFF_MS = 30000;
 
+    private readonly QuotaGate $quota;
+
     public function __construct(
         private readonly Config $config,
         private readonly ClientInterface $httpClient,
         private readonly RequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
         private readonly Logger $logger,
-    ) {}
+        ?QuotaGate $quota = null,
+    ) {
+        $this->quota = $quota ?? new QuotaGate($logger);
+    }
 
     public function send(Payload $payload): void
     {
@@ -45,6 +50,12 @@ final class Transport implements TransportInterface
                 JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
             ));
 
+            return;
+        }
+
+        // The server is discarding everything it receives right now, so this
+        // report would cost a round trip and be thrown away at the far end.
+        if ($this->quota->shouldDiscard()) {
             return;
         }
 
@@ -116,10 +127,13 @@ final class Transport implements TransportInterface
         if ($status >= 200 && $status < 300) {
             $data = $this->decode($response);
 
-            if (($data['quota_exceeded'] ?? false) === true) {
-                // Not an error: the monthly quota is exhausted and the server
-                // accepted-then-dropped the report. Never retried (§6).
-                $this->logger->warn("Report dropped: the project's monthly quota is exhausted.");
+            $dropped = QuotaGate::reasonFrom($data);
+
+            if ($dropped !== null) {
+                // Not an error: the server accepted the report and discarded it.
+                // Never retried (§6) — and the gate stops us sending the next one
+                // at all, since it would meet the same fate.
+                $this->quota->arm($dropped);
             } elseif (($data['deduplicated'] ?? false) === true) {
                 $this->logger->debug('Report deduplicated into an existing card.');
             } else {

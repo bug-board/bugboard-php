@@ -6,9 +6,12 @@ namespace BugBoard\Symfony;
 
 use BugBoard\Client;
 use BugBoard\ClientBuilder;
+use BugBoard\Psr16QuotaStore;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ServicesConfigurator;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 /**
@@ -52,12 +55,38 @@ final class BugBoardBundle extends AbstractBundle
     /** @param array<string, mixed> $config */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $container->services()
+        $services = $container->services();
+
+        $services
             ->set('bugboard.client', Client::class)
             ->factory([ClientBuilder::class, 'createFromArray'])
-            ->args([$config])
+            ->args([$config, $this->registerQuotaStore($services)])
             ->public()
             ->alias(Client::class, 'bugboard.client')
             ->public();
+    }
+
+    /**
+     * Back quota suppression with the application cache, so it survives the end
+     * of a request rather than re-opening on every one.
+     *
+     * `Psr16Cache` comes from symfony/cache, which this SDK does not depend on —
+     * hence the string class name and the guard. `cache.app` is registered
+     * unconditionally by FrameworkBundle, so any app able to load this bundle
+     * has it.
+     */
+    private function registerQuotaStore(ServicesConfigurator $services): ?Reference
+    {
+        $psr16 = 'Symfony\\Component\\Cache\\Psr16Cache';
+
+        if (! class_exists($psr16)) {
+            return null;
+        }
+
+        $services->set('bugboard.quota_cache', $psr16)->args([new Reference('cache.app')]);
+        $services->set('bugboard.quota_store', Psr16QuotaStore::class)
+            ->args([new Reference('bugboard.quota_cache')]);
+
+        return new Reference('bugboard.quota_store');
     }
 }

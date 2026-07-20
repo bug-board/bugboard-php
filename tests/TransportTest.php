@@ -135,7 +135,7 @@ final class TransportTest extends TestCase
 
         $logged = (string) file_get_contents($logFile);
         @unlink($logFile);
-        $this->assertStringContainsString('quota is exhausted', $logged);
+        $this->assertStringContainsString('allowance is exhausted', $logged);
     }
 
     public function test_log_locally_logs_the_payload_and_never_sends(): void

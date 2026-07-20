@@ -44,9 +44,15 @@ final class Client
 
     private bool $shutdownRegistered = false;
 
+    /**
+     * @param  QuotaGate|null  $quota  Shared with the transport so a suppressed
+     *                                 report never even takes a buffer slot. When
+     *                                 null the transport still gates its own sends.
+     */
     public function __construct(
         private readonly Config $config,
         private readonly TransportInterface $transport,
+        private readonly ?QuotaGate $quota = null,
     ) {
         $this->buffer = new Buffer($config->maxQueueSize);
         $this->logger = new Logger($config->debug, [$config->signingSecret, $config->apiKey]);
@@ -113,6 +119,13 @@ final class Client
         array|string $tags = [],
     ): void {
         if (! $this->config->active()) {
+            return;
+        }
+
+        // Checked here as well as in the transport so a suppressed report costs
+        // nothing at all: no payload building, and no buffer slot that a
+        // deliverable report could have used.
+        if ($this->quota?->shouldDiscard() === true) {
             return;
         }
 
