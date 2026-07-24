@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- PHP 8.5 is now covered by CI alongside 8.2, 8.3 and 8.4. The `^8.2` constraint already allowed
+  it, so nothing about installation changes — this records that the version is verified rather
+  than assumed. The supported floor is unchanged at PHP 8.2.
+
 ## [1.1.0] - 2026-07-20
 
 ### Added
