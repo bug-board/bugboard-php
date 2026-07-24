@@ -7,15 +7,6 @@
 The official [BugBoard](https://bugboard.dev) SDK for PHP. Report bugs as **cards** on your project board — from plain PHP, **Laravel**, **Symfony**, or any framework with a PSR-18 HTTP
 client.
 
-<div align="center">
-
-# 🚧 WORK IN PROGRESS 🚧
-
-**[BugBoard.dev](https://bugboard.dev) and its SDKs are currently under active development.**
-🚨 **Please do not use this package for anything right now.** 🚨
-**Once an official release is published, it will be available for everyone.**
-</div>
-
 ```php
 use BugBoard\Laravel\Facades\BugBoard;
 
@@ -32,10 +23,15 @@ your app**.
 
 > 📖 **[Usage guide](docs/USAGE.md)** — in-depth integration for plain PHP, Laravel, and Symfony:
 > exception handlers, queue workers, Monolog, config caching, testing, and troubleshooting.
+>
+> 📁 **[Examples](examples/)** — copy-paste-ready files for every usage mode: plain-PHP quickstart,
+> credentials, encryption, `beforeSend` scrubbing, global exception handling, CLI workers, quota
+> stores, [Laravel](examples/11-laravel/), [Symfony](examples/12-symfony/), and testing.
 
 ## Contents
 
 - [Requirements](#requirements)
+- [Examples](examples/) — runnable, one file per usage mode
 - [Installation](#installation)
 - [Installing php-sodium](#installing-php-sodium-for-payload-encryption) — only for payload encryption
 - **Framework setup** — [Laravel](#laravel) · [Symfony](#symfony) · [Plain PHP](#plain-php-any-framework)
