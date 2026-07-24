@@ -19,3 +19,6 @@ composer.lock
 .idea/
 .vscode/
 *.swp
+
+# Custom no-SDK reference implementation (local only, not shipped)
+CUSTOM_IMPLEMENTATION.md
