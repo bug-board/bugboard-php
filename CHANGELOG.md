@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-07-24
+
+### Added
+
+- An `examples/` directory with a copy-paste-ready example for every usage mode — plain-PHP
+  quickstart, secret vs publishable credentials, payload encryption, `beforeSend` scrubbing, a
+  global exception/fatal handler, a long-running worker, `createFromArray`, an explicit HTTP stack,
+  and a `QuotaStore` — plus Laravel and Symfony integrations laid out as real files at the paths
+  each framework expects. Linked from the README.
+- PHP 8.5 is now covered by CI alongside 8.2, 8.3 and 8.4. The `^8.2` constraint already allowed
+  it, so nothing about installation changes — this records that the version is verified rather
+  than assumed. The supported floor is unchanged at PHP 8.2.
+
+## [1.1.1] - 2026-07-20
+
+### Fixed
+
+- `composer.json` was missing a `readme` field, so Packagist had nothing to point at. It now
+  references `README.md`.
+
+### Changed
+
+- Terminology across the README and `composer.json` now says "bugs" instead of "errors", matching
+  the rest of the product.
+- Releases are cut from manual git tags rather than semantic-release, so the changelog is written
+  by hand rather than generated from commit messages.
+
 ## [1.1.0] - 2026-07-20
 
 ### Added
@@ -65,6 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A base URL that isn't absolute warns and falls back to `https://bugboard.dev`. Read the
   resolved URL via `Config::endpoint()`.
 
-[unreleased]: https://github.com/bug-board/bugboard-php/compare/v1.1.0...HEAD
+[unreleased]: https://github.com/bug-board/bugboard-php/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/bug-board/bugboard-php/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/bug-board/bugboard-php/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/bug-board/bugboard-php/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bug-board/bugboard-php/releases/tag/v1.0.0

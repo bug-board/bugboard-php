@@ -1,0 +1,18 @@
+# Base configuration. Run `php bin/console config:dump-reference bugboard` to see
+# the full schema with defaults.
+bugboard:
+    key_id: '%env(BUGBOARD_KEY_ID)%'
+    signing_secret: '%env(BUGBOARD_SIGNING_SECRET)%'
+    environment: '%kernel.environment%'
+
+# Per-environment overrides work as usual. For example:
+#
+#   config/packages/dev/bugboard.yaml
+#     bugboard:
+#         enabled: false        # or: log_locally: true
+#         debug: true
+#
+#   config/packages/prod/bugboard.yaml
+#     bugboard:
+#         sample_rate: 0.25
+#         release: '%env(APP_RELEASE)%'
